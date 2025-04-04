@@ -9,9 +9,13 @@
 //! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
 //! might not be what you expect.
 
+#![allow(clippy::module_inception)]
+
+extern crate alloc;
+
 mod context;
 mod switch;
-#[allow(clippy::module_inception)]
+mod syscall_stats;
 mod task;
 
 use crate::config::MAX_APP_NUM;
@@ -22,6 +26,9 @@ use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
+use syscall_stats::{
+    get_syscall_count as get_syscall_count_internal, record_syscall as record_syscall_internal,
+};
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -54,7 +61,6 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
-            syscall_times: [0; 500],
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -139,18 +145,16 @@ impl TaskManager {
 
     /// 记录指定系统调用的调用次数
     fn record_syscall(&self, syscall_id: usize) {
-        let mut inner = self.inner.exclusive_access();
+        let inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        let tcb = &mut inner.tasks[current];
-        tcb.syscall_times[syscall_id] += 1;
+        record_syscall_internal(current, syscall_id);
     }
 
     /// 获取指定系统调用的累计调用次数
     fn get_syscall_count(&self, syscall_id: usize) -> usize {
         let inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        let tcb = &inner.tasks[current];
-        tcb.syscall_times[syscall_id]
+        get_syscall_count_internal(current, syscall_id)
     }
 }
 
