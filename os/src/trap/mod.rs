@@ -31,7 +31,10 @@ pub fn init() {
         fn __alltraps();
     }
     unsafe {
-        stvec::write(__alltraps as usize, TrapMode::Direct);
+        let addr = __alltraps as usize;
+        let mode = TrapMode::Direct;
+
+        stvec::write(addr, mode);
     }
 }
 
