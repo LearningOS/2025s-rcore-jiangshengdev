@@ -26,9 +26,6 @@ use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
-use syscall_stats::{
-    get_syscall_count as get_syscall_count_internal, record_syscall as record_syscall_internal,
-};
 
 /// The task manager, where all the tasks are managed.
 ///
@@ -147,14 +144,14 @@ impl TaskManager {
     fn record_syscall(&self, syscall_id: usize) {
         let inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        record_syscall_internal(current, syscall_id);
+        syscall_stats::record_syscall(current, syscall_id);
     }
 
     /// 获取指定系统调用的累计调用次数
     fn get_syscall_count(&self, syscall_id: usize) -> usize {
         let inner = self.inner.exclusive_access();
         let current = inner.current_task;
-        get_syscall_count_internal(current, syscall_id)
+        syscall_stats::get_syscall_count(current, syscall_id)
     }
 }
 

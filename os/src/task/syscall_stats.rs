@@ -27,7 +27,7 @@ impl SyscallStats {
     /// 记录指定任务的指定系统调用的调用次数
     pub fn record_syscall(&mut self, task_id: usize, syscall_id: usize) {
         // 如果任务映射不存在，则创建一个空的映射
-        let task_stats = self.stats.entry(task_id).or_insert(BTreeMap::new());
+        let task_stats = self.stats.entry(task_id).or_default();
         // 在任务映射中，增加对应系统调用的计数
         *task_stats.entry(syscall_id).or_insert(0) += 1;
     }
