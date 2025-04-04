@@ -54,6 +54,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            syscall_times: [0; 500],
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -135,6 +136,22 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    /// 记录指定系统调用的调用次数
+    fn record_syscall(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let tcb = &mut inner.tasks[current];
+        tcb.syscall_times[syscall_id] += 1;
+    }
+
+    /// 获取指定系统调用的累计调用次数
+    fn get_syscall_count(&self, syscall_id: usize) -> usize {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let tcb = &inner.tasks[current];
+        tcb.syscall_times[syscall_id]
+    }
 }
 
 /// Run the first task in task list.
@@ -168,4 +185,14 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+/// 记录指定系统调用的调用次数
+pub fn record_syscall(syscall_id: usize) {
+    TASK_MANAGER.record_syscall(syscall_id);
+}
+
+/// 获取指定系统调用的累计调用次数
+pub fn get_syscall_count(syscall_id: usize) -> usize {
+    TASK_MANAGER.get_syscall_count(syscall_id)
 }
