@@ -48,6 +48,11 @@ impl KernelStack {
             *trap_cx_ptr = trap_cx;
         }
 
+        println!(
+            "kernel_sp: {:#x?}\tkernel_stack: {:#x?}",
+            kernel_sp, trap_cx_ptr as usize
+        );
+
         trap_cx_ptr as usize
     }
 }
@@ -110,6 +115,8 @@ pub fn init_app_cx(app_id: usize) -> usize {
     let sp = USER_STACK[app_id].get_sp();
 
     let context = TrapContext::app_init_context(entry, sp);
+
+    print!("app_id: {:?}\tentry: {:x?}\tsp: {:x?}\t", app_id, entry, sp);
 
     KERNEL_STACK[app_id].push_context(context)
 }

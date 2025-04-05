@@ -3,7 +3,7 @@
 use super::TaskContext;
 
 /// The task control block (TCB) of a task.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TaskControlBlock {
     /// The task status in it's lifecycle
     pub task_status: TaskStatus,
@@ -12,7 +12,7 @@ pub struct TaskControlBlock {
 }
 
 /// The status of a task
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum TaskStatus {
     /// uninitialized
     UnInit,

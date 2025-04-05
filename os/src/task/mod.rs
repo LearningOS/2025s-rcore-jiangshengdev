@@ -88,6 +88,8 @@ impl TaskManager {
     /// Generally, the first task in task list is an idle task (we call it zero process later).
     /// But in ch3, we load apps statically, so the first task is a real app.
     fn run_first_task(&self) -> ! {
+        println!("run_first_task");
+
         let mut inner = self.inner.exclusive_access();
 
         let task0 = &mut inner.tasks[0];
@@ -100,9 +102,15 @@ impl TaskManager {
 
         let mut _unused = TaskContext::zero_init();
 
+        let current_task_cx_ptr = &mut _unused as *mut TaskContext;
+
         // before this, we should drop local variables that must be dropped manually
         unsafe {
-            __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
+            println!("prev: {:#x?}", *current_task_cx_ptr);
+
+            println!("next: {:#x?}", *next_task_cx_ptr);
+
+            __switch(current_task_cx_ptr, next_task_cx_ptr);
         }
 
         panic!("unreachable in run_first_task!");
@@ -137,6 +145,8 @@ impl TaskManager {
     /// or there is no `Ready` task and we can exit with all applications completed
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
+            println!("run_next_task");
+
             let mut inner = self.inner.exclusive_access();
 
             let current = inner.current_task;
@@ -153,6 +163,10 @@ impl TaskManager {
 
             // before this, we should drop local variables that must be dropped manually
             unsafe {
+                println!("prev: {:#x?}", *current_task_cx_ptr);
+
+                println!("next: {:#x?}", *next_task_cx_ptr);
+
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
             }
 
