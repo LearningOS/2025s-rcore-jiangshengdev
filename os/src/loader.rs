@@ -21,10 +21,12 @@ struct UserStack {
     data: [u8; USER_STACK_SIZE],
 }
 
+#[no_mangle]
 static KERNEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
     data: [0; KERNEL_STACK_SIZE],
 }; MAX_APP_NUM];
 
+#[no_mangle]
 static USER_STACK: [UserStack; MAX_APP_NUM] = [UserStack {
     data: [0; USER_STACK_SIZE],
 }; MAX_APP_NUM];
@@ -34,10 +36,18 @@ impl KernelStack {
         self.data.as_ptr() as usize + KERNEL_STACK_SIZE
     }
     pub fn push_context(&self, trap_cx: TrapContext) -> usize {
-        let trap_cx_ptr = (self.get_sp() - core::mem::size_of::<TrapContext>()) as *mut TrapContext;
+        let kernel_sp = self.get_sp();
+
+        let len = core::mem::size_of::<TrapContext>();
+
+        let addr = kernel_sp - len;
+
+        let trap_cx_ptr = (addr) as *mut TrapContext;
+
         unsafe {
             *trap_cx_ptr = trap_cx;
         }
+
         trap_cx_ptr as usize
     }
 }
@@ -96,8 +106,10 @@ pub fn load_apps() {
 
 /// get app info with entry and sp and save `TrapContext` in kernel stack
 pub fn init_app_cx(app_id: usize) -> usize {
-    KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
-        get_base_i(app_id),
-        USER_STACK[app_id].get_sp(),
-    ))
+    let entry = get_base_i(app_id);
+    let sp = USER_STACK[app_id].get_sp();
+
+    let context = TrapContext::app_init_context(entry, sp);
+
+    KERNEL_STACK[app_id].push_context(context)
 }

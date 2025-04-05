@@ -55,14 +55,21 @@ lazy_static! {
     /// Global variable: TASK_MANAGER
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
+
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
         }; MAX_APP_NUM];
+
         for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
+            let kernel_stack = init_app_cx(i);
+
+            let cx  = TaskContext::goto_restore(kernel_stack);
+
+            task.task_cx = cx;
             task.task_status = TaskStatus::Ready;
         }
+
         TaskManager {
             num_app,
             inner: unsafe {
@@ -82,15 +89,22 @@ impl TaskManager {
     /// But in ch3, we load apps statically, so the first task is a real app.
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
+
         let task0 = &mut inner.tasks[0];
+
         task0.task_status = TaskStatus::Running;
+
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+
         drop(inner);
+
         let mut _unused = TaskContext::zero_init();
+
         // before this, we should drop local variables that must be dropped manually
         unsafe {
             __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
         }
+
         panic!("unreachable in run_first_task!");
     }
 
@@ -124,16 +138,24 @@ impl TaskManager {
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
+
             let current = inner.current_task;
+
             inner.tasks[next].task_status = TaskStatus::Running;
+
             inner.current_task = next;
+
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
+
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
+
             drop(inner);
+
             // before this, we should drop local variables that must be dropped manually
             unsafe {
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
             }
+
             // go back to user mode
         } else {
             panic!("All applications completed!");
