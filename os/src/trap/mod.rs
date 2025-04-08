@@ -48,7 +48,7 @@ fn set_user_trap_entry() {
 
     unsafe {
 
-        stvec::write(TRAMPOLINE as usize, TrapMode::Direct);
+        stvec::write(TRAMPOLINE, TrapMode::Direct);
     }
 }
 
@@ -152,7 +152,7 @@ pub fn trap_return() -> ! {
             in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
             in("a1") user_satp,        // a1 = phy addr of usr page table
             options(noreturn)
-        );
+        )
     }
 }
 

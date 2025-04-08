@@ -18,6 +18,7 @@ pub struct UPSafeCell<T> {
 unsafe impl<T> Sync for UPSafeCell<T> {}
 
 impl<T> UPSafeCell<T> {
+    /// # Safety
     /// User is responsible to guarantee that inner struct is only used in
     /// uniprocessor.
 
