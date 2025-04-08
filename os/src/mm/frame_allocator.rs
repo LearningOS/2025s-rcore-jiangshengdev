@@ -95,7 +95,11 @@ impl FrameAllocator for StackFrameAllocator {
 
             self.current += 1;
 
-            Some((self.current - 1).into())
+            let ppn = self.current - 1;
+
+            let phys_page_num = ppn.into();
+
+            Some(phys_page_num)
         }
     }
 
@@ -137,9 +141,13 @@ pub fn init_frame_allocator() {
 
     let memory_end = MEMORY_END;
 
-    let l = PhysAddr::from(ekernel).ceil();
+    let start = PhysAddr::from(ekernel);
 
-    let r = PhysAddr::from(memory_end).floor();
+    let end = PhysAddr::from(memory_end);
+
+    let l = start.ceil();
+
+    let r = end.floor();
 
     FRAME_ALLOCATOR.exclusive_access().init(l, r);
 }
