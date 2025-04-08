@@ -1,0 +1,2 @@
+edition = "2021"
+blank_lines_lower_bound = 1
