@@ -536,13 +536,17 @@ impl MapArea {
 
         loop {
 
-            let src = &data[start..len.min(start + PAGE_SIZE)];
+            let end = len.min(start + PAGE_SIZE);
 
-            let dst = &mut page_table
-                .translate(current_vpn)
-                .unwrap()
-                .ppn()
-                .get_bytes_array()[..src.len()];
+            let src = &data[start..end];
+
+            let pte = page_table.translate(current_vpn).unwrap();
+
+            let ppn = pte.ppn();
+
+            let bytes_array = ppn.get_bytes_array();
+
+            let dst = &mut bytes_array[..src.len()];
 
             dst.copy_from_slice(src);
 
