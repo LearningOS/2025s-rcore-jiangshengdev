@@ -87,11 +87,13 @@ impl MemorySet {
 
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
 
-        map_area.map(&mut self.page_table);
+        let page_table = &mut self.page_table;
+
+        map_area.map(page_table);
 
         if let Some(data) = data {
 
-            map_area.copy_data(&mut self.page_table, data);
+            map_area.copy_data(page_table, data);
         }
 
         self.areas.push(map_area);
@@ -105,9 +107,13 @@ impl MemorySet {
 
         let strampoline = strampoline as usize;
 
-        let virt_page_num = VirtAddr::from(trampoline).into();
+        let virt_addr = VirtAddr::from(trampoline);
 
-        let phys_page_num = PhysAddr::from(strampoline).into();
+        let phys_addr = PhysAddr::from(strampoline);
+
+        let virt_page_num = virt_addr.into();
+
+        let phys_page_num = phys_addr.into();
 
         let flags = PTEFlags::R | PTEFlags::X;
 
@@ -123,77 +129,109 @@ impl MemorySet {
         // map trampoline
         memory_set.map_trampoline();
 
+        let stext = stext as usize;
+
+        let etext = etext as usize;
+
+        let srodata = srodata as usize;
+
+        let erodata = erodata as usize;
+
+        let sdata = sdata as usize;
+
+        let edata = edata as usize;
+
+        let sbss_with_stack = sbss_with_stack as usize;
+
+        let ebss = ebss as usize;
+
         // map kernel sections
-        info!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
+        info!(".text [{:#x}, {:#x})", stext, etext);
 
-        info!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
+        info!(".rodata [{:#x}, {:#x})", srodata, erodata);
 
-        info!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
+        info!(".data [{:#x}, {:#x})", sdata, edata);
 
-        info!(
-            ".bss [{:#x}, {:#x})",
-            sbss_with_stack as usize, ebss as usize
-        );
+        info!(".bss [{:#x}, {:#x})", sbss_with_stack, ebss);
 
         info!("mapping .text section");
 
-        memory_set.push(
-            MapArea::new(
-                (stext as usize).into(),
-                (etext as usize).into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::X,
-            ),
-            None,
-        );
+        {
+
+            let start_va = stext.into();
+
+            let end_va = etext.into();
+
+            let perm = MapPermission::R | MapPermission::X;
+
+            let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
+
+            memory_set.push(area, None);
+        }
 
         info!("mapping .rodata section");
 
-        memory_set.push(
-            MapArea::new(
-                (srodata as usize).into(),
-                (erodata as usize).into(),
-                MapType::Identical,
-                MapPermission::R,
-            ),
-            None,
-        );
+        {
+
+            let start_va = srodata.into();
+
+            let end_va = erodata.into();
+
+            let perm = MapPermission::R;
+
+            let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
+
+            memory_set.push(area, None);
+        }
 
         info!("mapping .data section");
 
-        memory_set.push(
-            MapArea::new(
-                (sdata as usize).into(),
-                (edata as usize).into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
-        );
+        {
+
+            let start_va = sdata.into();
+
+            let end_va = edata.into();
+
+            let perm = MapPermission::R | MapPermission::W;
+
+            let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
+
+            memory_set.push(area, None);
+        }
 
         info!("mapping .bss section");
 
-        memory_set.push(
-            MapArea::new(
-                (sbss_with_stack as usize).into(),
-                (ebss as usize).into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
-        );
+        {
+
+            let start_va = sbss_with_stack.into();
+
+            let end_va = ebss.into();
+
+            let perm = MapPermission::R | MapPermission::W;
+
+            let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
+
+            memory_set.push(area, None);
+        }
 
         info!("mapping physical memory");
 
-        memory_set.push(
-            MapArea::new(
-                (ekernel as usize).into(),
-                MEMORY_END.into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
-        );
+        let ekernel = ekernel as usize;
+
+        let memory_end = MEMORY_END;
+
+        {
+
+            let start_va = ekernel.into();
+
+            let end_va = memory_end.into();
+
+            let perm = MapPermission::R | MapPermission::W;
+
+            let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
+
+            memory_set.push(area, None);
+        }
 
         memory_set
     }
@@ -393,9 +431,13 @@ impl MapArea {
 
         let end_vpn: VirtPageNum = end_va.ceil();
 
+        let vpn_range = VPNRange::new(start_vpn, end_vpn);
+
+        let data_frames = BTreeMap::new();
+
         Self {
-            vpn_range: VPNRange::new(start_vpn, end_vpn),
-            data_frames: BTreeMap::new(),
+            vpn_range,
+            data_frames,
             map_type,
             map_perm,
         }

@@ -22,13 +22,13 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
+extern crate alloc;
+
 #[macro_use]
 extern crate bitflags;
 
 #[macro_use]
 extern crate log;
-
-extern crate alloc;
 
 #[macro_use]
 
@@ -45,6 +45,7 @@ pub mod syscall;
 pub mod task;
 pub mod timer;
 pub mod trap;
+mod utils;
 
 core::arch::global_asm!(include_str!("entry.asm"));
 
@@ -64,8 +65,7 @@ fn clear_bss() {
 
     unsafe {
 
-        core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
-            .fill(0);
+        core::ptr::write_bytes(sbss as usize as *mut u8, 0, ebss as usize - sbss as usize);
     }
 }
 

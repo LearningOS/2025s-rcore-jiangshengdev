@@ -1,6 +1,7 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
 
 use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
+use crate::utils::do_nothing;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
@@ -147,7 +148,9 @@ impl PageTable {
 
         for (i, idx) in idxs.iter().enumerate() {
 
-            let pte = &mut ppn.get_pte_array()[*idx];
+            let arr = ppn.get_pte_array();
+
+            let pte = &mut arr[*idx];
 
             if i == 2 {
 
@@ -160,13 +163,21 @@ impl PageTable {
 
                 let frame = frame_alloc().unwrap();
 
-                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
+                let phys_page_num = frame.ppn;
+
+                let flags = PTEFlags::V;
+
+                *pte = PageTableEntry::new(phys_page_num, flags);
 
                 self.frames.push(frame);
             }
 
-            ppn = pte.ppn();
+            let page_num = pte.ppn();
+
+            ppn = page_num;
         }
+
+        do_nothing();
 
         result
     }
@@ -213,6 +224,8 @@ impl PageTable {
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
 
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
+
+        do_nothing();
     }
 
     /// remove the map between virtual page number and physical page number
