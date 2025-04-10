@@ -3,6 +3,8 @@
 
 use super::{PhysAddr, PhysPageNum};
 use crate::config::MEMORY_END;
+use crate::console::color;
+use crate::println_color;
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
@@ -55,6 +57,7 @@ trait FrameAllocator {
 }
 
 /// an implementation for frame allocator
+#[derive(Debug)]
 
 pub struct StackFrameAllocator {
     current: usize,
@@ -70,6 +73,9 @@ impl StackFrameAllocator {
         self.end = r.0;
 
         trace!("last {} Physical Frames.", self.end - self.current);
+
+        // 使用默认Debug实现来打印对象
+        println_color!(color::CYAN, "{:#x?}", self);
     }
 }
 

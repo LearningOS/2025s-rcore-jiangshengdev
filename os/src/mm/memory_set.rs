@@ -7,6 +7,8 @@ use super::{StepByOne, VPNRange};
 use crate::config::{
     KERNEL_STACK_SIZE, MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT_BASE, USER_STACK_SIZE,
 };
+use crate::console::color;
+use crate::println_color;
 use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -129,6 +131,17 @@ impl MemorySet {
         // map trampoline
         memory_set.map_trampoline();
 
+        println_color!(
+            color::GREEN,
+            "Trampoline mapped: {:?} -> {:?}",
+            VirtAddr::from(TRAMPOLINE).floor(),
+            memory_set
+                .page_table
+                .translate(VirtAddr::from(TRAMPOLINE).floor())
+                .unwrap()
+                .ppn()
+        );
+
         let stext = stext as usize;
 
         let etext = etext as usize;
@@ -167,6 +180,16 @@ impl MemorySet {
             let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
 
             memory_set.push(area, None);
+
+            // 使用封装的函数打印.text区域映射
+            super::print_area_mapping(
+                ".text",
+                &memory_set.page_table,
+                stext,
+                etext,
+                color::CYAN,
+                None,
+            );
         }
 
         info!("mapping .rodata section");
@@ -182,6 +205,16 @@ impl MemorySet {
             let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
 
             memory_set.push(area, None);
+
+            // 使用封装的函数打印.rodata区域映射
+            super::print_area_mapping(
+                ".rodata",
+                &memory_set.page_table,
+                srodata,
+                erodata,
+                color::YELLOW,
+                None,
+            );
         }
 
         info!("mapping .data section");
@@ -197,6 +230,16 @@ impl MemorySet {
             let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
 
             memory_set.push(area, None);
+
+            // 使用封装的函数打印.data区域映射
+            super::print_area_mapping(
+                ".data",
+                &memory_set.page_table,
+                sdata,
+                edata,
+                color::MAGENTA,
+                None,
+            );
         }
 
         info!("mapping .bss section");
@@ -212,6 +255,16 @@ impl MemorySet {
             let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
 
             memory_set.push(area, None);
+
+            // 使用封装的函数打印.bss区域映射
+            super::print_area_mapping(
+                ".bss",
+                &memory_set.page_table,
+                sbss_with_stack,
+                ebss,
+                color::BLUE,
+                None,
+            );
         }
 
         info!("mapping physical memory");
@@ -231,6 +284,16 @@ impl MemorySet {
             let area = MapArea::new(start_va, end_va, MapType::Identical, perm);
 
             memory_set.push(area, None);
+
+            // 使用封装的函数打印物理内存区域映射，限制显示页数
+            super::print_area_mapping(
+                "Physical memory",
+                &memory_set.page_table,
+                ekernel,
+                memory_end,
+                color::GREEN,
+                Some(20),
+            );
         }
 
         memory_set
