@@ -181,15 +181,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            // 使用封装的函数打印.text区域映射
-            super::print_area_mapping(
-                ".text",
-                &memory_set.page_table,
-                stext,
-                etext,
-                color::CYAN,
-                None,
-            );
+            super::print_area_mapping(".text", &memory_set.page_table, stext, etext, color::CYAN);
         }
 
         info!("mapping .rodata section");
@@ -206,14 +198,12 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            // 使用封装的函数打印.rodata区域映射
             super::print_area_mapping(
                 ".rodata",
                 &memory_set.page_table,
                 srodata,
                 erodata,
                 color::YELLOW,
-                None,
             );
         }
 
@@ -231,14 +221,12 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            // 使用封装的函数打印.data区域映射
             super::print_area_mapping(
                 ".data",
                 &memory_set.page_table,
                 sdata,
                 edata,
                 color::MAGENTA,
-                None,
             );
         }
 
@@ -256,14 +244,12 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            // 使用封装的函数打印.bss区域映射
             super::print_area_mapping(
                 ".bss",
                 &memory_set.page_table,
                 sbss_with_stack,
                 ebss,
                 color::BLUE,
-                None,
             );
         }
 
@@ -285,14 +271,12 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            // 使用封装的函数打印物理内存区域映射，限制显示页数
             super::print_area_mapping(
                 "Physical memory",
                 &memory_set.page_table,
                 ekernel,
                 memory_end,
                 color::GREEN,
-                Some(20),
             );
         }
 

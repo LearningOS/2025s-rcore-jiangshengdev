@@ -1,10 +1,10 @@
 //! Debug and print utilities for memory management
 //! 用于内存管理的调试和打印工具
 
-use super::{PageTable, PhysPageNum, VPNRange, VirtAddr, VirtPageNum};
+use super::{PTEFlags, PageTable, PhysPageNum, VPNRange, VirtAddr, VirtPageNum};
 use crate::println_color;
-use alloc::format;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Write;
 
 /// 打印VPN到PPN映射的配置选项
@@ -14,10 +14,6 @@ pub struct MappingPrintOptions {
     pub compress_identical: bool,
     /// 打印的颜色代码
     pub color_code: u8,
-    /// 页数限制（用于大内存区域）
-    pub page_limit: Option<usize>,
-    /// 每行显示的映射数量
-    pub items_per_line: usize,
 }
 
 impl MappingPrintOptions {
@@ -28,43 +24,33 @@ impl MappingPrintOptions {
         Self {
             compress_identical: true,
             color_code,
-            page_limit: None,
-            items_per_line: 4,
         }
-    }
-
-    /// 设置页数限制
-
-    pub fn with_page_limit(mut self, limit: usize) -> Self {
-
-        self.page_limit = Some(limit);
-
-        self
     }
 }
 
 /// 单个页面的映射信息
 
+#[derive(Clone)]
+
 struct PageMapping {
     vpn: VirtPageNum,
     ppn: PhysPageNum,
+    flags: PTEFlags,
 }
 
 /// 打印单行映射信息，自动处理缓冲和换行
 
 struct MappingPrinter {
     color_code: u8,
-    items_per_line: usize,
     line_buffer: String,
     count: usize,
 }
 
 impl MappingPrinter {
-    fn new(color_code: u8, items_per_line: usize) -> Self {
+    fn new(color_code: u8) -> Self {
 
         Self {
             color_code,
-            items_per_line,
             line_buffer: String::new(),
             count: 0,
         }
@@ -72,16 +58,9 @@ impl MappingPrinter {
 
     fn add_mapping(&mut self, mapping: PageMapping) {
 
-        // 在同一行使用tab格式化输出
-        if self.count > 0 && self.count % self.items_per_line == 0 {
-
-            self.flush();
-        }
-
         let mut s = String::new();
 
-        // 格式化输出VPN和PPN
-        write!(s, "{:?}->{:?}\t", mapping.vpn, mapping.ppn).unwrap();
+        write!(s, "VPN:{:#x}->PPN:{:#x}\t", mapping.vpn.0, mapping.ppn.0).unwrap();
 
         self.line_buffer.push_str(&s);
 
@@ -94,7 +73,7 @@ impl MappingPrinter {
 
             println_color!(self.color_code, "{}", self.line_buffer);
 
-            self.line_buffer = String::new();
+            self.line_buffer.clear();
         }
     }
 
@@ -104,21 +83,35 @@ impl MappingPrinter {
     }
 }
 
-/// 优化打印VPN到PPN的映射关系
-///
-/// # 参数
-///
-/// * `page_table` - 页表的引用
-/// * `start_vpn` - 起始虚拟页号
-/// * `end_vpn` - 结束虚拟页号（不含此页）
-/// * `options` - 打印选项
-///
-/// # 示例
-///
-/// ```
-/// let options = MappingPrintOptions::new(color::CYAN).with_page_limit(20);
-/// print_page_mappings(&memory_set.page_table, start_vpn, end_vpn, options);
-/// ```
+// 新增辅助函数，用于将 PTEFlags 转成字符串，如 "R | W" 等
+fn format_flags(flags: PTEFlags) -> String {
+
+    let mut parts = Vec::new();
+
+    if flags.contains(PTEFlags::R) {
+
+        parts.push("R");
+    }
+
+    if flags.contains(PTEFlags::W) {
+
+        parts.push("W");
+    }
+
+    if flags.contains(PTEFlags::X) {
+
+        parts.push("X");
+    }
+
+    if flags.contains(PTEFlags::U) {
+
+        parts.push("U");
+    }
+
+    parts.join(" | ")
+}
+
+/// 优化后的打印所有页映射，直接遍历并打印所有映射
 
 pub fn print_page_mappings(
     page_table: &PageTable,
@@ -127,133 +120,13 @@ pub fn print_page_mappings(
     options: MappingPrintOptions,
 ) {
 
-    let total_pages = end_vpn.0 - start_vpn.0;
-
-    let MappingPrintOptions {
-        compress_identical,
-        color_code,
-        page_limit,
-        items_per_line,
-    } = options;
-
-    // 如果有页数限制且页数过多，使用限制版本
-    if let Some(limit) = page_limit {
-
-        if total_pages > limit * 2 {
-
-            print_limited_mappings(
-                page_table,
-                start_vpn,
-                end_vpn,
-                color_code,
-                limit,
-                items_per_line,
-            );
-
-            return;
-        }
-    }
-
-    // 如果页数较少直接全部打印
-    if !compress_identical || total_pages <= items_per_line * 3 {
-
-        print_mappings_range(
-            page_table,
-            start_vpn,
-            end_vpn,
-            color_code,
-            items_per_line,
-            None,
-        );
-
-        return;
-    }
-
-    // 检查是否为连续的相同映射（如Identical映射）
-    if check_identical_mapping(page_table, start_vpn, end_vpn) {
-
-        print_identical_mapping_summary(page_table, start_vpn, end_vpn, color_code);
-    } else {
-
-        // 非Identical映射，打印开头和结尾
-        print_head_tail_mappings(page_table, start_vpn, end_vpn, color_code, items_per_line);
-    }
-}
-
-/// 检查是否为连续的相同（Identical）映射
-
-fn check_identical_mapping(
-    page_table: &PageTable,
-    start_vpn: VirtPageNum,
-    end_vpn: VirtPageNum,
-) -> bool {
-
-    let mut is_identical = true;
-
-    let first_vpn = start_vpn;
-
-    let total_pages = end_vpn.0 - start_vpn.0;
-
-    if let Some(pte) = page_table.translate(first_vpn) {
-
-        let first_ppn = pte.ppn();
-
-        // 检查第一个页面，判断是否可能为Identical映射
-        if first_ppn.0 != first_vpn.0 {
-
-            is_identical = false;
-        } else {
-
-            // 随机取样检查是否为连续的相同偏移映射
-            let sample_count = if total_pages > 10 { 5 } else { 2 };
-
-            let step = total_pages / sample_count;
-
-            for i in 1..sample_count {
-
-                let sample_vpn = VirtPageNum(start_vpn.0 + i * step);
-
-                if let Some(pte) = page_table.translate(sample_vpn) {
-
-                    if pte.ppn().0 != sample_vpn.0 {
-
-                        is_identical = false;
-
-                        break;
-                    }
-                } else {
-
-                    is_identical = false;
-
-                    break;
-                }
-            }
-        }
-    }
-
-    is_identical
-}
-
-/// 打印连续相同映射的摘要信息
-
-fn print_identical_mapping_summary(
-    _page_table: &PageTable,
-    start_vpn: VirtPageNum,
-    end_vpn: VirtPageNum,
-    color_code: u8,
-) {
-
-    let total_pages = end_vpn.0 - start_vpn.0;
-
-    // 连续的Identical映射，只打印起始和结束
-    println_color!(
-        color_code,
-        "Identical mapping: {:?} ~ {:?} -> {:?} ~ {:?} (共 {} 页)",
+    print_mappings_range(
+        page_table,
         start_vpn,
-        VirtPageNum(end_vpn.0 - 1),
-        PhysPageNum(start_vpn.0),
-        PhysPageNum(end_vpn.0 - 1),
-        total_pages
+        end_vpn,
+        options.color_code,
+        None,
+        options.compress_identical,
     );
 }
 
@@ -264,138 +137,128 @@ fn print_mappings_range(
     start_vpn: VirtPageNum,
     end_vpn: VirtPageNum,
     color_code: u8,
-    items_per_line: usize,
     header: Option<&str>,
+    compress: bool,
 ) {
 
-    let mut printer = MappingPrinter::new(color_code, items_per_line);
+    let mut printer = MappingPrinter::new(color_code);
 
-    // 如果提供了标题，则打印
     if let Some(h) = header {
 
         printer.print_header(h);
     }
 
-    // 遍历区间内的所有页面映射
-    for vpn in VPNRange::new(start_vpn, end_vpn) {
+    fn flush_group(printer: &mut MappingPrinter, group: &mut Vec<PageMapping>, color_code: u8) {
 
-        // 获取页表项，如果存在
-        if let Some(pte) = page_table.translate(vpn) {
+        if group.is_empty() {
 
-            // 确保是有效的映射，无效的PPN可能是尚未完成的映射或边界重叠
-            if !pte.is_valid() || pte.ppn().0 == 0 {
+            return;
+        }
 
-                // 对于无效页面，可以尝试在其他内存段查找
-                continue;
+        if group.len() >= 10 {
+
+            let start = group.first().unwrap();
+
+            let end = group.last().unwrap();
+
+            println_color!(color_code, "VPN:{:#x}->PPN:{:#x}", start.vpn.0, start.ppn.0);
+
+            println_color!(
+                color_code,
+                "...\nVPN:{:#x}->PPN:{:#x}",
+                end.vpn.0,
+                end.ppn.0
+            );
+
+            println_color!(color_code, "{}×", group.len());
+
+            println_color!(color_code, "{}", format_flags(start.flags));
+        } else {
+
+            for mapping in group.iter() {
+
+                println_color!(
+                    printer.color_code,
+                    "VPN:{:#x}->PPN:{:#x}\t{}",
+                    mapping.vpn.0,
+                    mapping.ppn.0,
+                    format_flags(mapping.flags)
+                );
             }
+        }
 
-            let mapping = PageMapping {
-                vpn,
-                ppn: pte.ppn(),
-            };
+        group.clear();
+    }
 
-            printer.add_mapping(mapping);
+    if compress {
+
+        let mut group: Vec<PageMapping> = Vec::new();
+
+        for vpn in VPNRange::new(start_vpn, end_vpn) {
+
+            if let Some(pte) = page_table.translate(vpn) {
+
+                if !pte.is_valid() || pte.ppn().0 == 0 {
+
+                    continue;
+                }
+
+                let mapping = PageMapping {
+                    vpn,
+                    ppn: pte.ppn(),
+                    flags: pte.flags(),
+                };
+
+                if mapping.ppn.0 == mapping.vpn.0 {
+
+                    if let Some(last) = group.last() {
+
+                        if mapping.vpn.0 == last.vpn.0 + 1 && mapping.ppn.0 == last.ppn.0 + 1 {
+
+                            group.push(mapping);
+                        } else {
+
+                            flush_group(&mut printer, &mut group, color_code);
+
+                            group.push(mapping);
+                        }
+                    } else {
+
+                        group.push(mapping);
+                    }
+                } else {
+
+                    flush_group(&mut printer, &mut group, color_code);
+
+                    printer.add_mapping(mapping);
+                }
+            }
+        }
+
+        flush_group(&mut printer, &mut group, color_code);
+    } else {
+
+        for vpn in VPNRange::new(start_vpn, end_vpn) {
+
+            if let Some(pte) = page_table.translate(vpn) {
+
+                if !pte.is_valid() || pte.ppn().0 == 0 {
+
+                    continue;
+                }
+
+                let mapping = PageMapping {
+                    vpn,
+                    ppn: pte.ppn(),
+                    flags: pte.flags(),
+                };
+
+                printer.add_mapping(mapping);
+            }
         }
     }
 
-    // 确保所有映射都被打印出来
     printer.flush();
-}
-
-/// 打印开头和结尾的映射，中间使用省略号
-
-fn print_head_tail_mappings(
-    page_table: &PageTable,
-    start_vpn: VirtPageNum,
-    end_vpn: VirtPageNum,
-    color_code: u8,
-    items_per_line: usize,
-) {
-
-    let total_pages = end_vpn.0 - start_vpn.0;
-
-    let head_pages = items_per_line * 2;
-
-    // 打印头部
-    print_mappings_range(
-        page_table,
-        start_vpn,
-        VirtPageNum(start_vpn.0 + head_pages.min(total_pages)),
-        color_code,
-        items_per_line,
-        Some("Head mappings:"),
-    );
-
-    // 如果页数较多，打印中间省略号和尾部
-    if total_pages > head_pages * 2 {
-
-        println_color!(
-            color_code,
-            "... (省略 {} 页) ...",
-            total_pages - head_pages * 2
-        );
-
-        // 打印尾部
-        print_mappings_range(
-            page_table,
-            VirtPageNum(end_vpn.0 - head_pages),
-            end_vpn,
-            color_code,
-            items_per_line,
-            Some("Tail mappings:"),
-        );
-    }
-}
-
-/// 打印限定数量的映射，适用于非常大的内存区域
-
-fn print_limited_mappings(
-    page_table: &PageTable,
-    start_vpn: VirtPageNum,
-    end_vpn: VirtPageNum,
-    color_code: u8,
-    limit: usize,
-    items_per_line: usize,
-) {
-
-    let total_pages = end_vpn.0 - start_vpn.0;
-
-    // 检查是否为连续的Identical映射
-    if check_identical_mapping(page_table, start_vpn, end_vpn) {
-
-        print_identical_mapping_summary(page_table, start_vpn, end_vpn, color_code);
-
-        return;
-    }
-
-    // 打印头部limit个页
-    let head_limit = limit.min(total_pages);
-
-    print_mappings_range(
-        page_table,
-        start_vpn,
-        VirtPageNum(start_vpn.0 + head_limit),
-        color_code,
-        items_per_line,
-        Some(&format!("Head mappings (限制为 {} 页):", limit)),
-    );
-
-    if total_pages > head_limit {
-
-        println_color!(
-            color_code,
-            "... (省略剩余 {} 页) ...",
-            total_pages - head_limit
-        );
-
-        // 打印一个结尾的页作为样本
-        let last_vpn = VirtPageNum(end_vpn.0 - 1);
-
-        if let Some(pte) = page_table.translate(last_vpn) {
-
-            println_color!(color_code, "尾部示例: {:?}->{:?}", last_vpn, pte.ppn());
-        }
-    }
 }
 
 /// 打印内存区域的映射，提供友好的名称和颜色
@@ -406,7 +269,6 @@ pub fn print_area_mapping(
     start_addr: usize,
     end_addr: usize,
     color_code: u8,
-    limit: Option<usize>,
 ) {
 
     println_color!(color_code, "{} section mapping:", name);
@@ -415,14 +277,7 @@ pub fn print_area_mapping(
 
     let end_vpn = VirtAddr::from(end_addr).ceil();
 
-    // 不再对边界页进行特殊处理，而是在打印函数内部处理可能的无效PPN
-    let options = if let Some(limit) = limit {
-
-        MappingPrintOptions::new(color_code).with_page_limit(limit)
-    } else {
-
-        MappingPrintOptions::new(color_code)
-    };
+    let options = MappingPrintOptions::new(color_code);
 
     print_page_mappings(page_table, start_vpn, end_vpn, options);
 }
