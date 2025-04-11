@@ -56,21 +56,29 @@ impl TaskControlBlock {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
 
-        let trap_cx_ppn = memory_set
-            .translate(VirtAddr::from(TRAP_CONTEXT_BASE).into())
-            .unwrap()
-            .ppn();
+        let trap_context_base = TRAP_CONTEXT_BASE;
+
+        let virt_page_num = VirtAddr::from(trap_context_base).into();
+
+        let trap_cx_ppn = memory_set.translate(virt_page_num).unwrap().ppn();
 
         let task_status = TaskStatus::Ready;
 
         // map a kernel-stack in kernel space
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(app_id);
 
-        KERNEL_SPACE.exclusive_access().insert_framed_area(
-            kernel_stack_bottom.into(),
-            kernel_stack_top.into(),
-            MapPermission::R | MapPermission::W,
-        );
+        {
+
+            let start_va = kernel_stack_bottom.into();
+
+            let end_va = kernel_stack_top.into();
+
+            let permission = MapPermission::R | MapPermission::W;
+
+            KERNEL_SPACE
+                .exclusive_access()
+                .insert_framed_area(start_va, end_va, permission);
+        }
 
         // 新增：打印内核栈映射信息，参考用户栈的打印
         print_area_mapping(
