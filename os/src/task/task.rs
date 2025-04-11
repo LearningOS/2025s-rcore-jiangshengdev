@@ -2,6 +2,8 @@
 
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT_BASE;
+use crate::console::color;
+use crate::mm::debug::print_area_mapping;
 use crate::mm::{
     kernel_stack_position, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE,
 };
@@ -68,6 +70,15 @@ impl TaskControlBlock {
             kernel_stack_bottom.into(),
             kernel_stack_top.into(),
             MapPermission::R | MapPermission::W,
+        );
+
+        // 新增：打印内核栈映射信息，参考用户栈的打印
+        print_area_mapping(
+            "Kernel stack",
+            &KERNEL_SPACE.exclusive_access().page_table,
+            kernel_stack_bottom,
+            kernel_stack_top,
+            color::BRIGHT_YELLOW,
         );
 
         let task_control_block = Self {

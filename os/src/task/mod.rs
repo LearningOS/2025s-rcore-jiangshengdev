@@ -58,6 +58,7 @@ lazy_static! {
         println!("num_app = {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
+            println!("App: {}", i);
             tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
         TaskManager {

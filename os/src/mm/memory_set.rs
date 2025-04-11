@@ -10,6 +10,7 @@ use crate::config::{
 use crate::console::color;
 use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
+use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
@@ -49,7 +50,7 @@ lazy_static! {
 /// address space
 
 pub struct MemorySet {
-    page_table: PageTable,
+    pub(crate) page_table: PageTable,
     areas: Vec<MapArea>,
 }
 
@@ -289,6 +290,14 @@ impl MemorySet {
         // map trampoline
         memory_set.map_trampoline();
 
+        // 新增：打印应用程序的跳板映射
+        print_mapped_page(
+            &memory_set.page_table,
+            VirtAddr::from(TRAMPOLINE),
+            "Trampoline (App)",
+            color::GREEN,
+        );
+
         // map program headers of elf, with U flag
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
 
@@ -308,9 +317,14 @@ impl MemorySet {
 
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
 
-                let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
+                // 新增：计算起止地址用于打印
+                let start_addr = ph.virtual_addr() as usize;
 
-                let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
+                let end_addr = (ph.virtual_addr() + ph.mem_size()) as usize;
+
+                let start_va: VirtAddr = start_addr.into();
+
+                let end_va: VirtAddr = end_addr.into();
 
                 let mut map_perm = MapPermission::U;
 
@@ -335,9 +349,68 @@ impl MemorySet {
 
                 max_end_vpn = map_area.vpn_range.get_end();
 
-                memory_set.push(
-                    map_area,
-                    Some(&elf.input[ph.offset() as usize..(ph.offset() + ph.file_size()) as usize]),
+                let start = ph.offset();
+
+                let len = ph.file_size();
+
+                let end = start + len;
+
+                let data = Some(&elf.input[start as usize..end as usize]);
+
+                memory_set.push(map_area, data);
+
+                // 新增：根据当前加载段地址范围获取对应的 ELF section 名称，只保留 .text, .rodata, .data, .bss
+                let mut section_names = Vec::new();
+
+                for section in elf.section_iter() {
+
+                    if let Ok(name) = section.get_name(&elf) {
+
+                        if name == ".text" || name == ".rodata" || name == ".data" || name == ".bss"
+                        {
+
+                            let sec_addr = section.address();
+
+                            if sec_addr >= ph.virtual_addr()
+                                && sec_addr < (ph.virtual_addr() + ph.mem_size())
+                            {
+
+                                section_names.push(name);
+                            }
+                        }
+                    }
+                }
+
+                let seg_name = if section_names.is_empty() {
+
+                    "User program segment".to_string()
+                } else {
+
+                    section_names.join(", ")
+                };
+
+                // 新增：为不同的段名称使用不同颜色
+                let mapping_color = if section_names.len() == 1 {
+
+                    match section_names[0] {
+                        ".text" => color::BRIGHT_RED,
+                        ".rodata" => color::BRIGHT_YELLOW,
+                        ".data" => color::BRIGHT_BLUE,
+                        ".bss" => color::BRIGHT_MAGENTA,
+                        _ => color::BRIGHT_GREEN,
+                    }
+                } else {
+
+                    color::BRIGHT_GREEN
+                };
+
+                // 修改：用户程序段使用计算出的 mapping_color 刻画，并打印对应 ELF segment 的 section name
+                print_area_mapping(
+                    &seg_name,
+                    &memory_set.page_table,
+                    start_addr,
+                    end_addr,
+                    mapping_color,
                 );
             }
         }
@@ -352,43 +425,77 @@ impl MemorySet {
 
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
 
-        memory_set.push(
-            MapArea::new(
-                user_stack_bottom.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
+        {
+
+            let start_va = user_stack_bottom.into();
+
+            let end_va = user_stack_top.into();
+
+            let map_perm = MapPermission::R | MapPermission::W | MapPermission::U;
+
+            let area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
+
+            memory_set.push(area, None);
+
+            // 修改：用户栈使用 BRIGHT_YELLOW 刻画
+            print_area_mapping(
+                "User stack",
+                &memory_set.page_table,
+                user_stack_bottom,
+                user_stack_top,
+                color::BRIGHT_YELLOW,
+            );
+        }
 
         // used in sbrk
-        memory_set.push(
-            MapArea::new(
-                user_stack_top.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
+        {
+
+            let start_va = user_stack_top.into();
+
+            let end_va = user_stack_top.into();
+
+            let map_perm = MapPermission::R | MapPermission::W | MapPermission::U;
+
+            let area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
+
+            memory_set.push(area, None);
+
+            // 修改：sbrk 区使用 BRIGHT_BLUE 刻画
+            print_area_mapping(
+                "User sbrk",
+                &memory_set.page_table,
+                user_stack_top,
+                user_stack_top,
+                color::BRIGHT_BLUE,
+            );
+        }
 
         // map TrapContext
-        memory_set.push(
-            MapArea::new(
-                TRAP_CONTEXT_BASE.into(),
-                TRAMPOLINE.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
-        );
+        {
 
-        (
-            memory_set,
-            user_stack_top,
-            elf.header.pt2.entry_point() as usize,
-        )
+            let start_va = TRAP_CONTEXT_BASE.into();
+
+            let end_va = TRAMPOLINE.into();
+
+            let map_perm = MapPermission::R | MapPermission::W;
+
+            let area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
+
+            memory_set.push(area, None);
+
+            // 修改：TrapContext 使用 BRIGHT_MAGENTA 刻画
+            print_area_mapping(
+                "TrapContext",
+                &memory_set.page_table,
+                TRAP_CONTEXT_BASE,
+                TRAMPOLINE,
+                color::BRIGHT_MAGENTA,
+            );
+        }
+
+        let entry_point = elf.header.pt2.entry_point() as usize;
+
+        (memory_set, user_stack_top, entry_point)
     }
 
     /// Change page table by writing satp CSR Register.

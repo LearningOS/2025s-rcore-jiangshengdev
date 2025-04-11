@@ -17,12 +17,20 @@ struct PageMapping {
     flags: PTEFlags,
 }
 
+// 定义VPN的最大宽度，用于对齐
+const MAX_VPN_WIDTH: usize = 9;
+
+// 每行显示的映射数量
+const MAPPINGS_PER_LINE: usize = 3;
+
 /// 缓冲映射打印器：收集映射信息，并在刷新时统一输出
 
 struct MappingPrinter {
     color_code: u8,
     line_buffer: String,
     count: usize,
+    // 新增字段：保存最后一次映射的权限
+    last_flags: Option<PTEFlags>,
 }
 
 impl MappingPrinter {
@@ -32,18 +40,38 @@ impl MappingPrinter {
             color_code,
             line_buffer: String::new(),
             count: 0,
+            last_flags: None,
         }
     }
 
     fn add_mapping(&mut self, mapping: PageMapping) {
 
+        // 保存映射的权限信息
+        self.last_flags = Some(mapping.flags);
+
         let mut s = String::new();
 
-        write!(s, "VPN:{:#x} -> PPN:{:#x}\t", mapping.vpn.0, mapping.ppn.0).unwrap();
+        // 修改为填充对齐格式
+        write!(
+            s,
+            "VPN:{:#0width$x} -> PPN:{:#0width$x}\t",
+            mapping.vpn.0,
+            mapping.ppn.0,
+            width = MAX_VPN_WIDTH
+        )
+        .unwrap();
 
         self.line_buffer.push_str(&s);
 
         self.count += 1;
+
+        // 当达到每行显示的映射数量时，刷新输出
+        if self.count % MAPPINGS_PER_LINE == 0 {
+
+            println_color!(self.color_code, "{}", self.line_buffer);
+
+            self.line_buffer.clear();
+        }
     }
 
     fn flush(&mut self) {
@@ -53,6 +81,14 @@ impl MappingPrinter {
             println_color!(self.color_code, "{}", self.line_buffer);
 
             self.line_buffer.clear();
+        }
+
+        // 打印一次权限信息（若有）
+        if let Some(flags) = self.last_flags {
+
+            println_color!(self.color_code, "Permissions: {}", format_flags(flags));
+
+            self.last_flags = None;
         }
     }
 
@@ -120,7 +156,7 @@ fn print_mappings_range(
         printer.print_header(h);
     }
 
-    fn flush_group(printer: &mut MappingPrinter, group: &mut Vec<PageMapping>, color_code: u8) {
+    fn flush_group(group: &mut Vec<PageMapping>, color_code: u8) {
 
         if group.is_empty() {
 
@@ -133,34 +169,70 @@ fn print_mappings_range(
 
             let end = group.last().unwrap();
 
+            // 修改为填充对齐格式
             println_color!(
                 color_code,
-                "VPN:{:#x} -> PPN:{:#x}",
+                "VPN:{:#0width$x} -> PPN:{:#0width$x}",
                 start.vpn.0,
-                start.ppn.0
+                start.ppn.0,
+                width = MAX_VPN_WIDTH
             );
 
+            // 修改为填充对齐格式
             println_color!(
                 color_code,
-                "...\nVPN:{:#x} -> PPN:{:#x}",
+                "...\nVPN:{:#0width$x} -> PPN:{:#0width$x}",
                 end.vpn.0,
-                end.ppn.0
+                end.ppn.0,
+                width = MAX_VPN_WIDTH
             );
 
             println_color!(color_code, "{}×", group.len());
 
-            println_color!(color_code, "{}", format_flags(start.flags));
+            // 打印权限只打印一次
+            println_color!(color_code, "Permissions: {}", format_flags(start.flags));
         } else {
+
+            // 对于较小的组，按照每行MAPPINGS_PER_LINE个映射打印
+            let mut count = 0;
+
+            let mut line_buffer = String::new();
 
             for mapping in group.iter() {
 
-                println_color!(
-                    printer.color_code,
-                    "VPN:{:#x} -> PPN:{:#x}\t{}",
+                let mut s = String::new();
+
+                write!(
+                    s,
+                    "VPN:{:#0width$x} -> PPN:{:#0width$x}\t",
                     mapping.vpn.0,
                     mapping.ppn.0,
-                    format_flags(mapping.flags)
-                );
+                    width = MAX_VPN_WIDTH
+                )
+                .unwrap();
+
+                line_buffer.push_str(&s);
+
+                count += 1;
+
+                if count % MAPPINGS_PER_LINE == 0 {
+
+                    println_color!(color_code, "{}", line_buffer);
+
+                    line_buffer.clear();
+                }
+            }
+
+            if !line_buffer.is_empty() {
+
+                println_color!(color_code, "{}", line_buffer);
+            }
+
+            // 打印权限标志
+            if !group.is_empty() {
+
+                // 打印一次权限信息
+                println_color!(color_code, "Permissions: {}", format_flags(group[0].flags));
             }
         }
 
@@ -195,7 +267,7 @@ fn print_mappings_range(
                             group.push(mapping);
                         } else {
 
-                            flush_group(&mut printer, &mut group, color_code);
+                            flush_group(&mut group, color_code);
 
                             group.push(mapping);
                         }
@@ -205,14 +277,14 @@ fn print_mappings_range(
                     }
                 } else {
 
-                    flush_group(&mut printer, &mut group, color_code);
+                    flush_group(&mut group, color_code);
 
                     printer.add_mapping(mapping);
                 }
             }
         }
 
-        flush_group(&mut printer, &mut group, color_code);
+        flush_group(&mut group, color_code);
     } else {
 
         for vpn in VPNRange::new(start_vpn, end_vpn) {
@@ -265,11 +337,14 @@ pub fn print_mapped_page(page_table: &PageTable, va: VirtAddr, name: &str, color
 
     let pte = page_table.translate(floor_va).unwrap();
 
+    // 修改为填充对齐格式
     println_color!(
         color_code,
-        "{} mapped:\n{:?} -> {:?}",
+        "{} mapped:\nVPN:{:#0width$x} -> PPN:{:#0width$x}\nPermissions: {}",
         name,
-        floor_va,
-        pte.ppn()
+        floor_va.0,
+        pte.ppn().0,
+        format_flags(pte.flags()),
+        width = MAX_VPN_WIDTH
     );
 }
