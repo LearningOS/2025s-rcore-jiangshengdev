@@ -1,5 +1,6 @@
 //! Process management syscalls
-use crate::task::{change_program_brk, exit_current_and_run_next, suspend_current_and_run_next};
+use crate::task::{change_program_brk, exit_current_and_run_next, get_syscall_count, suspend_current_and_run_next};
+use crate::timer::get_time_us;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -25,16 +26,39 @@ pub fn sys_yield() -> isize {
 /// YOUR JOB: get time with second and microsecond
 /// HINT: You might reimplement it with virtual memory management.
 /// HINT: What if [`TimeVal`] is splitted by two pages ?
-pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
+pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     trace!("kernel: sys_get_time");
-    -1
+    let us = get_time_us();
+    unsafe {
+        *ts = TimeVal {
+            sec: us / 1_000_000,
+            usec: us % 1_000_000,
+        };
+    }
+    0
 }
 
-/// TODO: Finish sys_trace to pass testcases
+/// 系统调用跟踪功能，支持读写内存和获取系统调用计数
 /// HINT: You might reimplement it with virtual memory management.
-pub fn sys_trace(_trace_request: usize, _id: usize, _data: usize) -> isize {
+pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
     trace!("kernel: sys_trace");
-    -1
+
+    match trace_request {
+        0 => {
+            let addr = id as *const u8;
+            unsafe { *addr as isize }
+        }
+        1 => {
+            let addr = id as *mut u8;
+            let value = data as u8;
+            unsafe {
+                *addr = value;
+            }
+            0
+        }
+        2 => get_syscall_count(id) as isize,
+        _ => -1,
+    }
 }
 
 // YOUR JOB: Implement mmap.
