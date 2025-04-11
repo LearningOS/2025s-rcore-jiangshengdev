@@ -1,6 +1,6 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
-use super::{frame_alloc, FrameTracker};
+use super::{frame_alloc, print_area_mapping, print_mapped_page, FrameTracker};
 use super::{PTEFlags, PageTable, PageTableEntry};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use super::{StepByOne, VPNRange};
@@ -8,7 +8,6 @@ use crate::config::{
     KERNEL_STACK_SIZE, MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT_BASE, USER_STACK_SIZE,
 };
 use crate::console::color;
-use crate::println_color;
 use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -131,15 +130,12 @@ impl MemorySet {
         // map trampoline
         memory_set.map_trampoline();
 
-        println_color!(
+        // 调用 debug 模块中的打印函数
+        print_mapped_page(
+            &memory_set.page_table,
+            VirtAddr::from(TRAMPOLINE),
+            "Trampoline",
             color::GREEN,
-            "Trampoline mapped: {:?} -> {:?}",
-            VirtAddr::from(TRAMPOLINE).floor(),
-            memory_set
-                .page_table
-                .translate(VirtAddr::from(TRAMPOLINE).floor())
-                .unwrap()
-                .ppn()
         );
 
         let stext = stext as usize;
@@ -181,7 +177,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            super::print_area_mapping(".text", &memory_set.page_table, stext, etext, color::CYAN);
+            print_area_mapping(".text", &memory_set.page_table, stext, etext, color::CYAN);
         }
 
         info!("mapping .rodata section");
@@ -198,7 +194,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            super::print_area_mapping(
+            print_area_mapping(
                 ".rodata",
                 &memory_set.page_table,
                 srodata,
@@ -221,7 +217,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            super::print_area_mapping(
+            print_area_mapping(
                 ".data",
                 &memory_set.page_table,
                 sdata,
@@ -244,7 +240,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            super::print_area_mapping(
+            print_area_mapping(
                 ".bss",
                 &memory_set.page_table,
                 sbss_with_stack,
@@ -271,7 +267,7 @@ impl MemorySet {
 
             memory_set.push(area, None);
 
-            super::print_area_mapping(
+            print_area_mapping(
                 "Physical memory",
                 &memory_set.page_table,
                 ekernel,

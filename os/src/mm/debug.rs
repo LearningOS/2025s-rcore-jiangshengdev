@@ -7,27 +7,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt::Write;
 
-/// 打印VPN到PPN映射的配置选项
-
-pub struct MappingPrintOptions {
-    /// 是否压缩显示连续映射
-    pub compress_identical: bool,
-    /// 打印的颜色代码
-    pub color_code: u8,
-}
-
-impl MappingPrintOptions {
-    /// 创建新的打印配置，使用指定的颜色
-
-    pub fn new(color_code: u8) -> Self {
-
-        Self {
-            compress_identical: true,
-            color_code,
-        }
-    }
-}
-
 /// 单个页面的映射信息
 
 #[derive(Clone)]
@@ -38,7 +17,7 @@ struct PageMapping {
     flags: PTEFlags,
 }
 
-/// 打印单行映射信息，自动处理缓冲和换行
+/// 缓冲映射打印器：收集映射信息，并在刷新时统一输出
 
 struct MappingPrinter {
     color_code: u8,
@@ -60,7 +39,7 @@ impl MappingPrinter {
 
         let mut s = String::new();
 
-        write!(s, "VPN:{:#x}->PPN:{:#x}\t", mapping.vpn.0, mapping.ppn.0).unwrap();
+        write!(s, "VPN:{:#x} -> PPN:{:#x}\t", mapping.vpn.0, mapping.ppn.0).unwrap();
 
         self.line_buffer.push_str(&s);
 
@@ -83,7 +62,7 @@ impl MappingPrinter {
     }
 }
 
-// 新增辅助函数，用于将 PTEFlags 转成字符串，如 "R | W" 等
+// 辅助函数：将 PTEFlags 格式化为以 " | " 分隔的权限字符串
 fn format_flags(flags: PTEFlags) -> String {
 
     let mut parts = Vec::new();
@@ -111,26 +90,19 @@ fn format_flags(flags: PTEFlags) -> String {
     parts.join(" | ")
 }
 
-/// 优化后的打印所有页映射，直接遍历并打印所有映射
+/// 打印所有页面映射信息，采用压缩输出方式
 
 pub fn print_page_mappings(
     page_table: &PageTable,
     start_vpn: VirtPageNum,
     end_vpn: VirtPageNum,
-    options: MappingPrintOptions,
+    color_code: u8,
 ) {
 
-    print_mappings_range(
-        page_table,
-        start_vpn,
-        end_vpn,
-        options.color_code,
-        None,
-        options.compress_identical,
-    );
+    print_mappings_range(page_table, start_vpn, end_vpn, color_code, None, true);
 }
 
-/// 打印指定范围内的所有映射
+/// 打印指定范围内的页面映射，支持分组与压缩输出
 
 fn print_mappings_range(
     page_table: &PageTable,
@@ -161,11 +133,16 @@ fn print_mappings_range(
 
             let end = group.last().unwrap();
 
-            println_color!(color_code, "VPN:{:#x}->PPN:{:#x}", start.vpn.0, start.ppn.0);
+            println_color!(
+                color_code,
+                "VPN:{:#x} -> PPN:{:#x}",
+                start.vpn.0,
+                start.ppn.0
+            );
 
             println_color!(
                 color_code,
-                "...\nVPN:{:#x}->PPN:{:#x}",
+                "...\nVPN:{:#x} -> PPN:{:#x}",
                 end.vpn.0,
                 end.ppn.0
             );
@@ -179,7 +156,7 @@ fn print_mappings_range(
 
                 println_color!(
                     printer.color_code,
-                    "VPN:{:#x}->PPN:{:#x}\t{}",
+                    "VPN:{:#x} -> PPN:{:#x}\t{}",
                     mapping.vpn.0,
                     mapping.ppn.0,
                     format_flags(mapping.flags)
@@ -261,7 +238,7 @@ fn print_mappings_range(
     printer.flush();
 }
 
-/// 打印内存区域的映射，提供友好的名称和颜色
+/// 打印内存区域映射信息，提供友好名称与颜色
 
 pub fn print_area_mapping(
     name: &str,
@@ -277,7 +254,22 @@ pub fn print_area_mapping(
 
     let end_vpn = VirtAddr::from(end_addr).ceil();
 
-    let options = MappingPrintOptions::new(color_code);
+    print_page_mappings(page_table, start_vpn, end_vpn, color_code);
+}
 
-    print_page_mappings(page_table, start_vpn, end_vpn, options);
+/// 打印单个页面的映射信息
+
+pub fn print_mapped_page(page_table: &PageTable, va: VirtAddr, name: &str, color_code: u8) {
+
+    let floor_va = va.floor();
+
+    let pte = page_table.translate(floor_va).unwrap();
+
+    println_color!(
+        color_code,
+        "{} mapped:\n{:?} -> {:?}",
+        name,
+        floor_va,
+        pte.ppn()
+    );
 }
