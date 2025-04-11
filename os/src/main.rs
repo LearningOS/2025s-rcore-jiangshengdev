@@ -75,5 +75,5 @@ pub fn rust_main() -> ! {
 
     use crate::board::QEMUExit;
     crate::board::QEMU_EXIT_HANDLE.exit_success(); // CI autotest success
-                                                   //crate::board::QEMU_EXIT_HANDLE.exit_failure(); // CI autoest failed
+                                                   //crate::board::QEMU_EXIT_HANDLE.exit_failure(); // CI autotest failed
 }
