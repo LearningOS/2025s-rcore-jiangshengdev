@@ -1,4 +1,4 @@
-//! Types related to task management
+//! 与任务管理相关的类型
 
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT_BASE;
@@ -9,51 +9,51 @@ use crate::mm::{
 };
 use crate::trap::{trap_handler, TrapContext};
 
-/// The task control block (TCB) of a task.
+/// 任务控制块（TCB）。
 
 pub struct TaskControlBlock {
-    /// Save task context
+    /// 保存任务上下文
     pub task_cx: TaskContext,
 
-    /// Maintain the execution status of the current process
+    /// 维护当前进程的执行状态
     pub task_status: TaskStatus,
 
-    /// Application address space
+    /// 应用程序地址空间
     pub memory_set: MemorySet,
 
-    /// The phys page number of trap context
+    /// 陷阱上下文的物理页号
     pub trap_cx_ppn: PhysPageNum,
 
-    /// The size(top addr) of program which is loaded from elf file
+    /// 从 elf 文件加载的程序的大小（顶部地址）
     pub base_size: usize,
 
-    /// Heap bottom
+    /// 堆底部
     pub heap_bottom: usize,
 
-    /// Program break
+    /// 程序中断点
     pub program_brk: usize,
 }
 
 impl TaskControlBlock {
-    /// get the trap context
+    /// 获取陷阱上下文
 
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
 
         self.trap_cx_ppn.get_mut()
     }
 
-    /// get the user token
+    /// 获取用户令牌
 
     pub fn get_user_token(&self) -> usize {
 
         self.memory_set.token()
     }
 
-    /// Based on the elf info in program, build the contents of task in a new address space
+    /// 基于程序中的 elf 信息，在新的地址空间中构建任务内容
 
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
 
-        // memory_set with elf program headers/trampoline/trap context/user stack
+        // 带有 elf 程序头/跳板/陷阱上下文/用户栈的内存集
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
 
         let trap_context_base = TRAP_CONTEXT_BASE;
@@ -64,7 +64,7 @@ impl TaskControlBlock {
 
         let task_status = TaskStatus::Ready;
 
-        // map a kernel-stack in kernel space
+        // 在内核空间中映射一个内核栈
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(app_id);
 
         {
@@ -99,7 +99,7 @@ impl TaskControlBlock {
             program_brk: user_sp,
         };
 
-        // prepare TrapContext in user space
+        // 在用户空间准备陷阱上下文
         let trap_cx = task_control_block.get_trap_cx();
 
         *trap_cx = TrapContext::app_init_context(
@@ -113,7 +113,7 @@ impl TaskControlBlock {
         task_control_block
     }
 
-    /// change the location of the program break. return None if failed.
+    /// 更改程序中断点的位置。如果失败则返回 None。
 
     pub fn change_program_brk(&mut self, size: i32) -> Option<usize> {
 
@@ -149,15 +149,15 @@ impl TaskControlBlock {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-/// task status: UnInit, Ready, Running, Exited
+/// 任务状态：未初始化、就绪、运行、已退出
 
 pub enum TaskStatus {
-    /// uninitialized
+    /// 未初始化
     UnInit,
-    /// ready to run
+    /// 准备运行
     Ready,
-    /// running
+    /// 正在运行
     Running,
-    /// exited
+    /// 已退出
     Exited,
 }

@@ -1,10 +1,10 @@
-//! Memory management implementation
+//! 内存管理实现
 //!
-//! SV39 page-based virtual-memory architecture for RV64 systems, and
-//! everything about memory management, like frame allocator, page table,
-//! map area and memory set, is implemented here.
+//! SV39 页表虚拟内存架构（用于 RV64 系统）相关的实现，
+//! 以及所有关于内存管理的内容，如框架分配器、页表、
+//! 映射区域和内存集等，都在此实现。
 //!
-//! Every task or process has a memory_set to control its virtual memory.
+//! 每个任务或进程都有一个 memory_set 来控制其虚拟内存。
 
 mod address;
 pub(crate) mod debug;
@@ -22,7 +22,7 @@ pub use memory_set::{kernel_stack_position, MapPermission, MemorySet, KERNEL_SPA
 pub use page_table::{translated_byte_buffer, PageTableEntry};
 pub use page_table::{PTEFlags, PageTable};
 
-/// initiate heap allocator, frame allocator and kernel space
+/// 初始化堆分配器、框架分配器和内核空间
 
 pub fn init() {
 

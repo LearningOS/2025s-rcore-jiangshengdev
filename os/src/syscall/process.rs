@@ -1,4 +1,4 @@
-//! Process management syscalls
+//! 进程管理系统调用
 
 use crate::task::{change_program_brk, exit_current_and_run_next, suspend_current_and_run_next};
 
@@ -10,7 +10,7 @@ pub struct TimeVal {
     pub usec: usize,
 }
 
-/// task exits and submit an exit code
+/// 任务退出并提交退出代码
 
 pub fn sys_exit(_exit_code: i32) -> ! {
 
@@ -18,10 +18,10 @@ pub fn sys_exit(_exit_code: i32) -> ! {
 
     exit_current_and_run_next();
 
-    panic!("Unreachable in sys_exit!");
+    panic!("sys_exit 中不可达！");
 }
 
-/// current task gives up resources for other tasks
+/// 当前任务放弃资源给其他任务
 
 pub fn sys_yield() -> isize {
 
@@ -32,9 +32,9 @@ pub fn sys_yield() -> isize {
     0
 }
 
-/// YOUR JOB: get time with second and microsecond
-/// HINT: You might reimplement it with virtual memory management.
-/// HINT: What if [`TimeVal`] is splitted by two pages ?
+/// 你的任务：获取时间，包括秒和微秒
+/// 提示：你可能需要通过虚拟内存管理来重新实现它。
+/// 提示：如果 [`TimeVal`] 被两个页面分割怎么办？
 
 pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
 
@@ -43,8 +43,8 @@ pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
     -1
 }
 
-/// TODO: Finish sys_trace to pass testcases
-/// HINT: You might reimplement it with virtual memory management.
+/// 待办事项：完成 sys_trace 以通过测试用例
+/// 提示：你可能需要通过虚拟内存管理来重新实现它。
 
 pub fn sys_trace(_trace_request: usize, _id: usize, _data: usize) -> isize {
 
@@ -53,23 +53,23 @@ pub fn sys_trace(_trace_request: usize, _id: usize, _data: usize) -> isize {
     -1
 }
 
-// YOUR JOB: Implement mmap.
+// 你的任务：实现 mmap。
 pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
 
-    trace!("kernel: sys_mmap NOT IMPLEMENTED YET!");
+    trace!("kernel: sys_mmap 尚未实现！");
 
     -1
 }
 
-// YOUR JOB: Implement munmap.
+// 你的任务：实现 munmap。
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
 
-    trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
+    trace!("kernel: sys_munmap 尚未实现！");
 
     -1
 }
 
-/// change data segment size
+/// 改变数据段大小
 
 pub fn sys_sbrk(size: i32) -> isize {
 

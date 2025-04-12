@@ -1,11 +1,11 @@
-//! File and filesystem-related syscalls
+//! 文件和文件系统相关的系统调用
 
 use crate::mm::translated_byte_buffer;
 use crate::task::current_user_token;
 
 const FD_STDOUT: usize = 1;
 
-/// write buf of length `len`  to a file with `fd`
+/// 将长度为 `len` 的 buf 写入具有 `fd` 的文件
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
 
@@ -25,7 +25,7 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
         }
         _ => {
 
-            panic!("Unsupported fd in sys_write!");
+            panic!("sys_write 中不支持的 fd！");
         }
     }
 }

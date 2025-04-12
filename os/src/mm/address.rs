@@ -1,10 +1,10 @@
-//! Implementation of physical and virtual address and page number.
+//! 物理和虚拟地址及页号的实现。
 
 use super::PageTableEntry;
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 use core::fmt::{self, Debug, Formatter};
 
-/// physical address
+/// 物理地址
 
 const PA_WIDTH_SV39: usize = 56;
 
@@ -14,27 +14,27 @@ const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
-/// physical address
+/// 物理地址
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct PhysAddr(pub usize);
 
-/// virtual address
+/// 虚拟地址
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct VirtAddr(pub usize);
 
-/// physical page number
+/// 物理页号
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct PhysPageNum(pub usize);
 
-/// virtual page number
+/// 虚拟页号
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct VirtPageNum(pub usize);
 
-/// Debugging
+/// 调试
 
 impl Debug for VirtAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -130,31 +130,31 @@ impl From<VirtPageNum> for usize {
     }
 }
 
-/// virtual address impl
+/// 虚拟地址实现
 
 impl VirtAddr {
-    /// Get the (floor) virtual page number
+    /// 获取（向下取整的）虚拟页号
 
     pub fn floor(&self) -> VirtPageNum {
 
         VirtPageNum(self.0 / PAGE_SIZE)
     }
 
-    /// Get the (ceil) virtual page number
+    /// 获取（向上取整的）虚拟页号
 
     pub fn ceil(&self) -> VirtPageNum {
 
         VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
 
-    /// Get the page offset of virtual address
+    /// 获取虚拟地址的页内偏移
 
     pub fn page_offset(&self) -> usize {
 
         self.0 & (PAGE_SIZE - 1)
     }
 
-    /// Check if the virtual address is aligned by page size
+    /// 检查虚拟地址是否按页大小对齐
 
     pub fn aligned(&self) -> bool {
 
@@ -179,28 +179,28 @@ impl From<VirtPageNum> for VirtAddr {
 }
 
 impl PhysAddr {
-    /// Get the (floor) physical page number
+    /// 获取（向下取整的）物理页号
 
     pub fn floor(&self) -> PhysPageNum {
 
         PhysPageNum(self.0 / PAGE_SIZE)
     }
 
-    /// Get the (ceil) physical page number
+    /// 获取（向上取整的）物理页号
 
     pub fn ceil(&self) -> PhysPageNum {
 
         PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
 
-    /// Get the page offset of physical address
+    /// 获取物理地址的页内偏移
 
     pub fn page_offset(&self) -> usize {
 
         self.0 & (PAGE_SIZE - 1)
     }
 
-    /// Check if the physical address is aligned by page size
+    /// 检查物理地址是否按页大小对齐
 
     pub fn aligned(&self) -> bool {
 
@@ -225,7 +225,7 @@ impl From<PhysPageNum> for PhysAddr {
 }
 
 impl VirtPageNum {
-    /// Get the indexes of the page table entry
+    /// 获取页表项的索引
 
     pub fn indexes(&self) -> [usize; 3] {
 
@@ -245,8 +245,8 @@ impl VirtPageNum {
 }
 
 impl PhysAddr {
-    ///Get mutable reference to `PhysAddr` value
-    /// Get the mutable reference of physical address
+    ///获取 `PhysAddr` 值的可变引用
+    /// 获取物理地址的可变引用
 
     pub fn get_mut<T>(&self) -> &'static mut T {
 
@@ -258,7 +258,7 @@ impl PhysAddr {
 }
 
 impl PhysPageNum {
-    /// Get the reference of page table(array of ptes)
+    /// 获取页表（页表项数组）的引用
 
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
 
@@ -270,7 +270,7 @@ impl PhysPageNum {
         }
     }
 
-    /// Get the reference of page(array of bytes)
+    /// 获取页（字节数组）的引用
 
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
 
@@ -282,7 +282,7 @@ impl PhysPageNum {
         }
     }
 
-    /// Get the mutable reference of physical address
+    /// 获取物理地址的可变引用
 
     pub fn get_mut<T>(&self) -> &'static mut T {
 
@@ -292,10 +292,10 @@ impl PhysPageNum {
     }
 }
 
-/// iterator for phy/virt page number
+/// 物理/虚拟页号的迭代器
 
 pub trait StepByOne {
-    /// step by one element(page number)
+    /// 步进一个元素（页号）
 
     fn step(&mut self);
 }
@@ -308,7 +308,7 @@ impl StepByOne for VirtPageNum {
 }
 
 #[derive(Copy, Clone)]
-/// a simple range structure for type T
+/// 一个用于类型 T 的简单范围结构
 
 pub struct SimpleRange<T>
 where
@@ -354,7 +354,7 @@ where
     }
 }
 
-/// iterator for the simple range structure
+/// 简单范围结构的迭代器
 
 pub struct SimpleRangeIterator<T>
 where
@@ -396,6 +396,6 @@ where
     }
 }
 
-/// a simple range structure for virtual page number
+/// 虚拟页号的简单范围结构
 
 pub type VPNRange = SimpleRange<VirtPageNum>;

@@ -1,42 +1,41 @@
-//! Implementation of syscalls
+//! 系统调用的实现
 //!
-//! The single entry point to all system calls, [`syscall()`], is called
-//! whenever userspace wishes to perform a system call using the `ecall`
-//! instruction. In this case, the processor raises an 'Environment call from
-//! U-mode' exception, which is handled as one of the cases in
-//! [`crate::trap::trap_handler`].
+//! 所有系统调用的单一入口点，[`syscall()`]，在用户空间
+//! 希望使用 `ecall` 指令执行系统调用时被调用。在这种情况下，
+//! 处理器引发一个 "来自 U-模式的环境调用" 异常，这被作为
+//! [`crate::trap::trap_handler`] 中的一种情况处理。
 //!
-//! For clarity, each single syscall is implemented as its own function, named
-//! `sys_` then the name of the syscall. You can find functions like this in
-//! submodules, and you should also implement syscalls this way.
+//! 为了清晰起见，每个单独的系统调用都被实现为自己的函数，命名为
+//! `sys_` 加上系统调用的名称。你可以在子模块中找到这样的函数，
+//! 你也应该以这种方式实现系统调用。
 
 const SYSCALL_WRITE: usize = 64;
 
-/// exit syscall
+/// exit 系统调用
 
 const SYSCALL_EXIT: usize = 93;
 
-/// yield syscall
+/// yield 系统调用
 
 const SYSCALL_YIELD: usize = 124;
 
-/// gettime syscall
+/// gettime 系统调用
 
 const SYSCALL_GET_TIME: usize = 169;
 
-/// sbrk syscall
+/// sbrk 系统调用
 
 const SYSCALL_SBRK: usize = 214;
 
-/// munmap syscall
+/// munmap 系统调用
 
 const SYSCALL_MUNMAP: usize = 215;
 
-/// mmap syscall
+/// mmap 系统调用
 
 const SYSCALL_MMAP: usize = 222;
 
-/// trace syscall
+/// trace 系统调用
 
 const SYSCALL_TRACE: usize = 410;
 
@@ -46,7 +45,7 @@ mod process;
 use fs::*;
 use process::*;
 
-/// handle syscall exception with `syscall_id` and other arguments
+/// 处理带有 `syscall_id` 和其他参数的系统调用异常
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
 
@@ -59,6 +58,6 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
         SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
         SYSCALL_SBRK => sys_sbrk(args[0] as i32),
-        _ => panic!("Unsupported syscall_id: {}", syscall_id),
+        _ => panic!("不支持的系统调用ID: {}", syscall_id),
     }
 }

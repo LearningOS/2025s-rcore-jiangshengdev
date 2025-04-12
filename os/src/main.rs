@@ -1,19 +1,15 @@
-//! The main module and entrypoint
+//! 主模块和入口点
 //!
-//! Various facilities of the kernels are implemented as submodules. The most
-//! important ones are:
+//! 内核的各种功能以子模块的形式实现。最重要的模块有：
 //!
-//! - [`trap`]: Handles all cases of switching from userspace to the kernel
-//! - [`task`]: Task management
-//! - [`syscall`]: System call handling and implementation
+//! - [`trap`]：处理所有从用户空间切换到内核的情况
+//! - [`task`]：任务管理
+//! - [`syscall`]：系统调用处理和实现
 //!
-//! The operating system also starts in this module. Kernel code starts
-//! executing from `entry.asm`, after which [`rust_main()`] is called to
-//! initialize various pieces of functionality. (See its source code for
-//! details.)
+//! 操作系统也从这个模块开始。内核代码从 `entry.asm` 开始执行，
+//! 之后调用 [`rust_main()`] 来初始化各种功能。（详见其源代码）
 //!
-//! We then call [`task::run_first_task()`] and for the first time go to
-//! userspace.
+//! 然后我们调用 [`task::run_first_task()`]，第一次进入用户空间。
 
 #![deny(missing_docs)]
 #![deny(warnings)]
@@ -51,7 +47,7 @@ core::arch::global_asm!(include_str!("entry.asm"));
 
 core::arch::global_asm!(include_str!("link_app.S"));
 
-/// clear BSS segment
+/// 清除 BSS 段
 
 fn clear_bss() {
 
@@ -69,22 +65,22 @@ fn clear_bss() {
     }
 }
 
-/// kernel log info
+/// 内核日志信息
 
 fn kernel_log_info() {
 
     extern "C" {
 
-        fn stext(); // begin addr of text segment
-        fn etext(); // end addr of text segment
-        fn srodata(); // start addr of Read-Only data segment
-        fn erodata(); // end addr of Read-Only data ssegment
-        fn sdata(); // start addr of data segment
-        fn edata(); // end addr of data segment
-        fn sbss(); // start addr of BSS segment
-        fn ebss(); // end addr of BSS segment
-        fn boot_stack_lower_bound(); // stack lower bound
-        fn boot_stack_top(); // stack top
+        fn stext(); // 文本段起始地址
+        fn etext(); // 文本段结束地址
+        fn srodata(); // 只读数据段起始地址
+        fn erodata(); // 只读数据段结束地址
+        fn sdata(); // 数据段起始地址
+        fn edata(); // 数据段结束地址
+        fn sbss(); // BSS段起始地址
+        fn ebss(); // BSS段结束地址
+        fn boot_stack_lower_bound(); // 栈下边界
+        fn boot_stack_top(); // 栈顶
     }
 
     logging::init();
@@ -116,7 +112,7 @@ fn kernel_log_info() {
 }
 
 #[no_mangle]
-/// the rust entry-point of os
+/// 操作系统的Rust入口点
 
 pub fn rust_main() -> ! {
 

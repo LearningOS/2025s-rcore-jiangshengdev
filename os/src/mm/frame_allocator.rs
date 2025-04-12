@@ -1,5 +1,5 @@
-//! Implementation of [`FrameAllocator`] which
-//! controls all the frames in the operating system.
+//! [`FrameAllocator`] 的实现，
+//! 控制操作系统中的所有物理页帧。
 
 use super::{PhysAddr, PhysPageNum};
 use crate::config::MEMORY_END;
@@ -10,19 +10,19 @@ use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
 use lazy_static::*;
 
-/// tracker for physical page frame allocation and deallocation
+/// 物理页帧分配和回收的追踪器
 
 pub struct FrameTracker {
-    /// physical page number
+    /// 物理页号
     pub ppn: PhysPageNum,
 }
 
 impl FrameTracker {
-    /// Create a new FrameTracker
+    /// 创建一个新的 FrameTracker
 
     pub fn new(ppn: PhysPageNum) -> Self {
 
-        // page cleaning
+        // 页面清零
         let bytes_array = ppn.get_bytes_array();
 
         for i in bytes_array {
@@ -56,7 +56,7 @@ trait FrameAllocator {
     fn dealloc(&mut self, ppn: PhysPageNum);
 }
 
-/// an implementation for frame allocator
+/// 页帧分配器的一种实现
 #[derive(Debug)]
 
 pub struct StackFrameAllocator {
@@ -72,9 +72,9 @@ impl StackFrameAllocator {
 
         self.end = r.0;
 
-        trace!("last {} Physical Frames.", self.end - self.current);
+        trace!("剩余 {} 个物理页帧。", self.end - self.current);
 
-        // 使用默认Debug实现来打印对象
+        // 使用默认 Debug 实现来打印对象
         println_color!(color::CYAN, "{:#x?}", self);
     }
 }
@@ -113,13 +113,13 @@ impl FrameAllocator for StackFrameAllocator {
 
         let ppn = ppn.0;
 
-        // validity check
+        // 有效性检查
         if ppn >= self.current || self.recycled.iter().any(|&v| v == ppn) {
 
-            panic!("Frame ppn={:#x} has not been allocated!", ppn);
+            panic!("页帧 ppn={:#x} 未被分配！", ppn);
         }
 
-        // recycle
+        // 回收
         self.recycled.push(ppn);
     }
 }
@@ -127,13 +127,13 @@ impl FrameAllocator for StackFrameAllocator {
 type FrameAllocatorImpl = StackFrameAllocator;
 
 lazy_static! {
-    /// frame allocator instance through lazy_static!
+    /// 通过 lazy_static! 创建的页帧分配器实例
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> = unsafe {
         UPSafeCell::new(FrameAllocatorImpl::new())
     };
 }
 
-/// initiate the frame allocator using `ekernel` and `MEMORY_END`
+/// 使用 `ekernel` 和 `MEMORY_END` 初始化页帧分配器
 
 pub fn init_frame_allocator() {
 
@@ -158,7 +158,7 @@ pub fn init_frame_allocator() {
     FRAME_ALLOCATOR.exclusive_access().init(l, r);
 }
 
-/// Allocate a physical page frame in FrameTracker style
+/// 以 FrameTracker 样式分配一个物理页帧
 
 pub fn frame_alloc() -> Option<FrameTracker> {
 
@@ -168,7 +168,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
         .map(FrameTracker::new)
 }
 
-/// Deallocate a physical page frame with a given ppn
+/// 回收一个具有给定物理页号的物理页帧
 
 pub fn frame_dealloc(ppn: PhysPageNum) {
 
@@ -176,7 +176,7 @@ pub fn frame_dealloc(ppn: PhysPageNum) {
 }
 
 #[allow(unused)]
-/// a simple test for frame allocator
+/// 页帧分配器的简单测试
 
 pub fn frame_allocator_test() {
 
@@ -204,5 +204,5 @@ pub fn frame_allocator_test() {
 
     drop(v);
 
-    println!("frame_allocator_test passed!");
+    println!("页帧分配器测试通过！");
 }

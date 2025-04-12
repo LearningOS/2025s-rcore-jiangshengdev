@@ -1,4 +1,4 @@
-//! Implementation of [`PageTableEntry`] and [`PageTable`].
+//! [`PageTableEntry`] 和 [`PageTable`] 的实现。
 
 use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
 use crate::utils::do_nothing;
@@ -7,38 +7,38 @@ use alloc::vec::Vec;
 use bitflags::*;
 
 bitflags! {
-    /// page table entry flags
+    /// 页表项标志位
     pub struct PTEFlags: u8 {
-        /// Valid
+        /// 有效位
         const V = 1 << 0;
-        /// Readable
+        /// 可读
         const R = 1 << 1;
-        /// Writable
+        /// 可写
         const W = 1 << 2;
-        /// eXecutable
+        /// 可执行
         const X = 1 << 3;
-        /// User
+        /// 用户
         const U = 1 << 4;
-        /// Global
+        /// 全局
         const G = 1 << 5;
-        /// Accessed
+        /// 已访问
         const A = 1 << 6;
-        /// Dirty
+        /// 已修改
         const D = 1 << 7;
     }
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-/// page table entry structure
+/// 页表项结构
 
 pub struct PageTableEntry {
-    /// bits of page table entry
+    /// 页表项的位
     pub bits: usize,
 }
 
 impl PageTableEntry {
-    /// Create a new page table entry
+    /// 创建一个新的页表项
 
     pub fn new(ppn: PhysPageNum, flags: PTEFlags) -> Self {
 
@@ -47,49 +47,49 @@ impl PageTableEntry {
         }
     }
 
-    /// Create an empty page table entry
+    /// 创建一个空的页表项
 
     pub fn empty() -> Self {
 
         PageTableEntry { bits: 0 }
     }
 
-    /// Get the physical page number from the page table entry
+    /// 获取页表项中的物理页号
 
     pub fn ppn(&self) -> PhysPageNum {
 
         (self.bits >> 10 & ((1usize << 44) - 1)).into()
     }
 
-    /// Get the flags from the page table entry
+    /// 获取页表项中的标志位
 
     pub fn flags(&self) -> PTEFlags {
 
         PTEFlags::from_bits(self.bits as u8).unwrap()
     }
 
-    /// The page pointered by page table entry is valid?
+    /// 页表项所指向的页是否有效？
 
     pub fn is_valid(&self) -> bool {
 
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
 
-    /// The page pointered by page table entry is readable?
+    /// 页表项所指向的页是否可读？
 
     pub fn readable(&self) -> bool {
 
         (self.flags() & PTEFlags::R) != PTEFlags::empty()
     }
 
-    /// The page pointered by page table entry is writable?
+    /// 页表项所指向的页是否可写？
 
     pub fn writable(&self) -> bool {
 
         (self.flags() & PTEFlags::W) != PTEFlags::empty()
     }
 
-    /// The page pointered by page table entry is executable?
+    /// 页表项所指向的页是否可执行？
 
     pub fn executable(&self) -> bool {
 
@@ -97,7 +97,7 @@ impl PageTableEntry {
     }
 }
 
-/// page table structure
+/// 页表结构
 
 pub struct PageTable {
     root_ppn: PhysPageNum,
@@ -111,10 +111,10 @@ impl Default for PageTable {
     }
 }
 
-/// Assume that it won't oom when creating/mapping.
+/// 假设在创建/映射时不会出现内存不足的情况。
 
 impl PageTable {
-    /// Create a new page table
+    /// 创建一个新的页表
 
     pub fn new() -> Self {
 
@@ -126,7 +126,7 @@ impl PageTable {
         }
     }
 
-    /// Temporarily used to get arguments from user space.
+    /// 临时用于从用户空间获取参数。
 
     pub fn from_token(satp: usize) -> Self {
 
@@ -136,7 +136,7 @@ impl PageTable {
         }
     }
 
-    /// Find PageTableEntry by VirtPageNum, create a frame for a 4KB page table if not exist
+    /// 通过虚拟页号查找页表项，如果不存在，则为 4KB 页表创建一个帧
 
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
 
@@ -182,7 +182,7 @@ impl PageTable {
         result
     }
 
-    /// Find PageTableEntry by VirtPageNum
+    /// 通过虚拟页号查找页表项
 
     fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
 
@@ -214,40 +214,40 @@ impl PageTable {
         result
     }
 
-    /// set the map between virtual page number and physical page number
+    /// 设置虚拟页号和物理页号之间的映射
     #[allow(unused)]
 
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
 
         let pte = self.find_pte_create(vpn).unwrap();
 
-        assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
+        assert!(!pte.is_valid(), "虚拟页 {:?} 在映射前已被映射", vpn);
 
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
 
         do_nothing();
     }
 
-    /// remove the map between virtual page number and physical page number
+    /// 移除虚拟页号和物理页号之间的映射
     #[allow(unused)]
 
     pub fn unmap(&mut self, vpn: VirtPageNum) {
 
         let pte = self.find_pte(vpn).unwrap();
 
-        assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
+        assert!(pte.is_valid(), "虚拟页 {:?} 在取消映射前无效", vpn);
 
         *pte = PageTableEntry::empty();
     }
 
-    /// get the page table entry from the virtual page number
+    /// 根据虚拟页号获取页表项
 
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
 
         self.find_pte(vpn).map(|pte| *pte)
     }
 
-    /// get the token from the page table
+    /// 获取页表的令牌
 
     pub fn token(&self) -> usize {
 
@@ -255,7 +255,7 @@ impl PageTable {
     }
 }
 
-/// Translate&Copy a ptr[u8] array with LENGTH len to a mutable u8 Vec through page table
+/// 通过页表将长度为 LENGTH 的 ptr[u8] 数组转换并复制到一个可变的 u8 Vec 中
 
 pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
 

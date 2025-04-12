@@ -1,35 +1,35 @@
-//! Implementation of [`TrapContext`]
+//! [`TrapContext`] 的实现
 
 use riscv::register::sstatus::{self, Sstatus, SPP};
 
 #[repr(C)]
 #[derive(Debug)]
-/// trap context structure containing sstatus, sepc and registers
+/// 包含 sstatus、sepc 和寄存器的陷阱上下文结构
 
 pub struct TrapContext {
-    /// General-Purpose Register x0-31
+    /// 通用寄存器 x0-31
     pub x: [usize; 32],
-    /// Supervisor Status Register
+    /// 监督者状态寄存器
     pub sstatus: Sstatus,
-    /// Supervisor Exception Program Counter
+    /// 监督者异常程序计数器
     pub sepc: usize,
-    /// Token of kernel address space
+    /// 内核地址空间的令牌
     pub kernel_satp: usize,
-    /// Kernel stack pointer of the current application
+    /// 当前应用程序的内核栈指针
     pub kernel_sp: usize,
-    /// Virtual address of trap handler entry point in kernel
+    /// 内核中陷阱处理入口点的虚拟地址
     pub trap_handler: usize,
 }
 
 impl TrapContext {
-    /// put the sp(stack pointer) into x\[2\] field of TrapContext
+    /// 将 sp（栈指针）放入 TrapContext 的 x\[2\] 字段
 
     pub fn set_sp(&mut self, sp: usize) {
 
         self.x[2] = sp;
     }
 
-    /// init the trap context of an application
+    /// 初始化应用程序的陷阱上下文
 
     pub fn app_init_context(
         entry: usize,
@@ -41,19 +41,19 @@ impl TrapContext {
 
         let mut sstatus = sstatus::read();
 
-        // set CPU privilege to User after trapping back
+        // 陷阱返回后将 CPU 权限设置为用户态
         sstatus.set_spp(SPP::User);
 
         let mut cx = Self {
             x: [0; 32],
             sstatus,
-            sepc: entry,  // entry point of app
-            kernel_satp,  // addr of page table
-            kernel_sp,    // kernel stack
-            trap_handler, // addr of trap_handler function
+            sepc: entry,  // 应用程序的入口点
+            kernel_satp,  // 页表地址
+            kernel_sp,    // 内核栈
+            trap_handler, // 陷阱处理函数的地址
         };
 
-        cx.set_sp(sp); // app's user stack pointer
-        cx // return initial Trap Context of app
+        cx.set_sp(sp); // 应用程序的用户栈指针
+        cx // 返回应用程序的初始陷阱上下文
     }
 }

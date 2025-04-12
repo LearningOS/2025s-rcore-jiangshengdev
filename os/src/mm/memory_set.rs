@@ -1,4 +1,4 @@
-//! Implementation of [`MapArea`] and [`MemorySet`].
+//! [`MapArea`] 和 [`MemorySet`] 的实现。
 
 use super::{frame_alloc, print_area_mapping, print_mapped_page, FrameTracker};
 use super::{PTEFlags, PageTable, PageTableEntry};
@@ -42,12 +42,12 @@ extern "C" {
 }
 
 lazy_static! {
-    /// The kernel's initial memory mapping(kernel address space)
+    /// 内核的初始内存映射（内核地址空间）
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
 
-/// address space
+/// 地址空间
 
 pub struct MemorySet {
     pub(crate) page_table: PageTable,
@@ -55,7 +55,7 @@ pub struct MemorySet {
 }
 
 impl MemorySet {
-    /// Create a new empty `MemorySet`.
+    /// 创建一个新的空 `MemorySet`。
 
     pub fn new_bare() -> Self {
 
@@ -65,14 +65,14 @@ impl MemorySet {
         }
     }
 
-    /// Get the page table token
+    /// 获取页表令牌
 
     pub fn token(&self) -> usize {
 
         self.page_table.token()
     }
 
-    /// Assume that no conflicts.
+    /// 假设没有冲突。
 
     pub fn insert_framed_area(
         &mut self,
@@ -101,7 +101,7 @@ impl MemorySet {
         self.areas.push(map_area);
     }
 
-    /// Mention that trampoline is not collected by areas.
+    /// 注意，跳板页不被 areas 收集。
 
     fn map_trampoline(&mut self) {
 
@@ -122,13 +122,13 @@ impl MemorySet {
         self.page_table.map(virt_page_num, phys_page_num, flags);
     }
 
-    /// Without kernel stacks.
+    /// 不包含内核栈。
 
     pub fn new_kernel() -> Self {
 
         let mut memory_set = Self::new_bare();
 
-        // map trampoline
+        // 映射跳板页
         memory_set.map_trampoline();
 
         // 调用 debug 模块中的打印函数
@@ -155,7 +155,7 @@ impl MemorySet {
 
         let ebss = ebss as usize;
 
-        // map kernel sections
+        // 映射内核各段
         info!(".text [{:#x}, {:#x})", stext, etext);
 
         info!(".rodata [{:#x}, {:#x})", srodata, erodata);
@@ -280,14 +280,14 @@ impl MemorySet {
         memory_set
     }
 
-    /// Include sections in elf and trampoline and TrapContext and user stack,
-    /// also returns user_sp_base and entry point.
+    /// 包括 ELF 中的各段、跳板页、TrapContext 和用户栈，
+    /// 同时返回用户栈顶指针和入口点。
 
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
 
         let mut memory_set = Self::new_bare();
 
-        // map trampoline
+        // 映射跳板页
         memory_set.map_trampoline();
 
         // 新增：打印应用程序的跳板映射
@@ -298,14 +298,14 @@ impl MemorySet {
             color::GREEN,
         );
 
-        // map program headers of elf, with U flag
+        // 映射 ELF 的程序头，带有 U 标志
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
 
         let elf_header = elf.header;
 
         let magic = elf_header.pt1.magic;
 
-        assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
+        assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "无效的 ELF 文件！");
 
         let ph_count = elf_header.pt2.ph_count();
 
@@ -415,12 +415,12 @@ impl MemorySet {
             }
         }
 
-        // map user stack with U flags
+        // 映射用户栈，带有 U 标志
         let max_end_va: VirtAddr = max_end_vpn.into();
 
         let mut user_stack_bottom: usize = max_end_va.into();
 
-        // guard page
+        // 保护页
         user_stack_bottom += PAGE_SIZE;
 
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
@@ -447,7 +447,7 @@ impl MemorySet {
             );
         }
 
-        // used in sbrk
+        // 用于 sbrk
         {
 
             let start_va = user_stack_top.into();
@@ -470,7 +470,7 @@ impl MemorySet {
             );
         }
 
-        // map TrapContext
+        // 映射 TrapContext
         {
 
             let start_va = TRAP_CONTEXT_BASE.into();
@@ -498,7 +498,7 @@ impl MemorySet {
         (memory_set, user_stack_top, entry_point)
     }
 
-    /// Change page table by writing satp CSR Register.
+    /// 通过写入 satp CSR 寄存器切换页表。
 
     pub fn activate(&self) {
 
@@ -512,14 +512,14 @@ impl MemorySet {
         }
     }
 
-    /// Translate a virtual page number to a page table entry
+    /// 将虚拟页号转换为页表项
 
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
 
         self.page_table.translate(vpn)
     }
 
-    /// shrink the area to new_end
+    /// 将区域缩小至新的结束边界
     #[allow(unused)]
 
     pub fn shrink_to(&mut self, start: VirtAddr, new_end: VirtAddr) -> bool {
@@ -539,7 +539,7 @@ impl MemorySet {
         }
     }
 
-    /// append the area to new_end
+    /// 将区域扩展至新的结束边界
     #[allow(unused)]
 
     pub fn append_to(&mut self, start: VirtAddr, new_end: VirtAddr) -> bool {
@@ -560,7 +560,7 @@ impl MemorySet {
     }
 }
 
-/// map area structure, controls a contiguous piece of virtual memory
+/// 映射区域结构，控制一段连续的虚拟内存
 
 pub struct MapArea {
     vpn_range: VPNRange,
@@ -671,8 +671,8 @@ impl MapArea {
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
 
-    /// data: start-aligned but maybe with shorter length
-    /// assume that all frames were cleared before
+    /// 数据：起始对齐但可能长度较短
+    /// 假设所有帧在之前已被清零
 
     pub fn copy_data(&mut self, page_table: &mut PageTable, data: &[u8]) {
 
@@ -713,7 +713,7 @@ impl MapArea {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-/// map type for memory set: identical or framed
+/// 内存集的映射类型：恒等映射或帧映射
 
 pub enum MapType {
     Identical,
@@ -721,20 +721,20 @@ pub enum MapType {
 }
 
 bitflags! {
-    /// map permission corresponding to that in pte: `R W X U`
+    /// 映射权限，对应于 PTE 中的：`R W X U`
     pub struct MapPermission: u8 {
-        ///Readable
+        /// 可读
         const R = 1 << 1;
-        ///Writable
+        /// 可写
         const W = 1 << 2;
-        ///Excutable
+        /// 可执行
         const X = 1 << 3;
-        ///Accessible in U mode
+        /// 用户模式可访问
         const U = 1 << 4;
     }
 }
 
-/// Return (bottom, top) of a kernel stack in kernel space.
+/// 返回内核空间中内核栈的（底部，顶部）位置。
 
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
 
@@ -745,7 +745,7 @@ pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     (bottom, top)
 }
 
-/// remap test in kernel space
+/// 内核空间中的重映射测试
 #[allow(unused)]
 
 pub fn remap_test() {
@@ -776,5 +776,5 @@ pub fn remap_test() {
         .unwrap()
         .executable(),);
 
-    println!("remap_test passed!");
+    println!("重映射测试通过！");
 }

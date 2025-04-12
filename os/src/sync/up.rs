@@ -1,26 +1,25 @@
-//! Uniprocessor interior mutability primitives
+//! 单处理器内部可变性原语
 
 use core::cell::{RefCell, RefMut};
 
-/// Wrap a static data structure inside it so that we are
-/// able to access it without any `unsafe`.
+/// 将静态数据结构包装在其中，使我们能够
+/// 在不使用任何 `unsafe` 的情况下访问它。
 ///
-/// We should only use it in uniprocessor.
+/// 我们应该只在单处理器环境中使用它。
 ///
-/// In order to get mutable reference of inner data, call
-/// `exclusive_access`.
+/// 为了获取内部数据的可变引用，调用
+/// `exclusive_access`。
 
 pub struct UPSafeCell<T> {
-    /// inner data
+    /// 内部数据
     inner: RefCell<T>,
 }
 
 unsafe impl<T> Sync for UPSafeCell<T> {}
 
 impl<T> UPSafeCell<T> {
-    /// # Safety
-    /// User is responsible to guarantee that inner struct is only used in
-    /// uniprocessor.
+    /// # 安全性
+    /// 用户负责保证内部结构只在单处理器环境中使用。
 
     pub unsafe fn new(value: T) -> Self {
 
@@ -29,7 +28,7 @@ impl<T> UPSafeCell<T> {
         }
     }
 
-    /// Panic if the data has been borrowed.
+    /// 如果数据已被借用则触发 panic。
 
     pub fn exclusive_access(&self) -> RefMut<'_, T> {
 

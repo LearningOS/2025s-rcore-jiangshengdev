@@ -1,6 +1,6 @@
-//! Loading user applications into memory
+//! 将用户应用程序加载到内存
 
-/// Get the total number of applications.
+/// 获取应用程序总数
 
 pub fn get_num_app() -> usize {
 
@@ -16,7 +16,7 @@ pub fn get_num_app() -> usize {
     }
 }
 
-/// get applications data
+/// 获取应用程序数据
 
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
 
