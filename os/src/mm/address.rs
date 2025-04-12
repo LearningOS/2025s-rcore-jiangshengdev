@@ -1,4 +1,10 @@
 //! 物理和虚拟地址及页号的实现。
+//!
+//! 本模块实现了地址转换和页表操作所需的各种地址类型，包括：
+//! - 物理地址（PhysAddr）和物理页号（PhysPageNum）
+//! - 虚拟地址（VirtAddr）和虚拟页号（VirtPageNum）
+//! - 它们之间的相互转换
+//! - 用于内存区域表示的范围类型
 
 use super::PageTableEntry;
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
@@ -6,35 +12,65 @@ use core::fmt::{self, Debug, Formatter};
 
 /// 物理地址
 
+/// SV39分页模式下的物理地址宽度，单位为bit
+/// 在RISC-V的SV39实现中，物理地址被限制为56位
+
 const PA_WIDTH_SV39: usize = 56;
+
+/// SV39分页模式下的虚拟地址宽度，单位为bit
+/// 在RISC-V的SV39实现中，虚拟地址被限制为39位，所以命名为SV39
 
 const VA_WIDTH_SV39: usize = 39;
 
+/// SV39分页模式下的物理页号宽度，单位为bit
+/// 计算方法：物理地址宽度 - 页内偏移位数
+/// = 56 - 12 = 44位
+/// 物理页号(PPN)用于定位物理内存中的页框，每个PPN对应一个4KB的物理页框
+
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
+
+/// SV39分页模式下的虚拟页号宽度，单位为bit
+/// 计算方法：虚拟地址宽度 - 页内偏移位数
+/// = 39 - 12 = 27位
+/// 虚拟页号(VPN)用于通过页表映射到对应的物理页号
 
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 /// 物理地址
+///
+/// 表示RISC-V硬件中的实际物理内存地址
+/// 可通过页表将虚拟地址转换为物理地址
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct PhysAddr(pub usize);
 
 /// 虚拟地址
+///
+/// 表示程序使用的逻辑地址，需要通过页表转换为物理地址
+/// 在SV39模式中，有效位宽为39位
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct VirtAddr(pub usize);
 
 /// 物理页号
+///
+/// 表示物理内存中的页框编号，每个物理页的大小为4KB
+/// 由物理地址右移页内偏移位数(12)得到
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct PhysPageNum(pub usize);
 
 /// 虚拟页号
+///
+/// 表示虚拟地址空间中的页编号，通过页表映射到物理页号
+/// 由虚拟地址右移页内偏移位数(12)得到
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 
 pub struct VirtPageNum(pub usize);
 
-/// 调试
+/// 调试实现，用于格式化输出各种地址和页号类型
+
+/// Debug实现：格式化输出虚拟地址，以十六进制显示
 
 impl Debug for VirtAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -43,6 +79,8 @@ impl Debug for VirtAddr {
     }
 }
 
+/// Debug实现：格式化输出虚拟页号，以十六进制显示
+
 impl Debug for VirtPageNum {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 
@@ -50,12 +88,16 @@ impl Debug for VirtPageNum {
     }
 }
 
+/// Debug实现：格式化输出物理地址，以十六进制显示
+
 impl Debug for PhysAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 
         f.write_fmt(format_args!("PA:{:#x}", self.0))
     }
 }
+
+/// Debug实现：格式化输出物理页号，以十六进制显示
 
 impl Debug for PhysPageNum {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -68,33 +110,59 @@ impl Debug for PhysPageNum {
 /// T -> usize: T.0
 /// usize -> T: usize.into()
 
+/// 从 usize 转换为 PhysAddr (物理地址)
+/// 通过掩码限制物理地址在 PA_WIDTH_SV39 (56位) 范围内
+
 impl From<usize> for PhysAddr {
     fn from(v: usize) -> Self {
 
+        // (1 << 56) - 1
+        // = 0xFFFF_FFFF_FFFF_FF
         Self(v & ((1 << PA_WIDTH_SV39) - 1))
     }
 }
 
+/// 从 usize 转换为 PhysPageNum (物理页号)
+/// 通过掩码限制物理页号在 PPN_WIDTH_SV39 (44位) 范围内
+
 impl From<usize> for PhysPageNum {
     fn from(v: usize) -> Self {
 
+        // (1 << PPN_WIDTH_SV39) - 1
+        // 1 << (56-12) - 1
+        // = (1 << 44) - 1
+        // = 0xFFF_FFFF_FFFF
         Self(v & ((1 << PPN_WIDTH_SV39) - 1))
     }
 }
 
+/// 从 usize 转换为 VirtAddr (虚拟地址)
+/// 通过掩码限制虚拟地址在 VA_WIDTH_SV39 (39位) 范围内
+
 impl From<usize> for VirtAddr {
     fn from(v: usize) -> Self {
 
+        // (1 << 39) - 1
+        // = 0x7FFF_FFFF_FF
         Self(v & ((1 << VA_WIDTH_SV39) - 1))
     }
 }
 
+/// 从 usize 转换为 VirtPageNum (虚拟页号)
+/// 通过掩码限制虚拟页号在 VPN_WIDTH_SV39 (27位) 范围内
+
 impl From<usize> for VirtPageNum {
     fn from(v: usize) -> Self {
 
+        // 1 << (39-12) - 1
+        // = (1 << 27) - 1
+        // = 0x0000_0000_07FF_FFFF
         Self(v & ((1 << VPN_WIDTH_SV39) - 1))
     }
 }
+
+/// 从 PhysAddr (物理地址) 转换为 usize
+/// 直接返回内部存储的无符号整数值
 
 impl From<PhysAddr> for usize {
     fn from(v: PhysAddr) -> Self {
@@ -103,6 +171,9 @@ impl From<PhysAddr> for usize {
     }
 }
 
+/// 从 PhysPageNum (物理页号) 转换为 usize
+/// 直接返回内部存储的无符号整数值
+
 impl From<PhysPageNum> for usize {
     fn from(v: PhysPageNum) -> Self {
 
@@ -110,11 +181,21 @@ impl From<PhysPageNum> for usize {
     }
 }
 
+/// 从 VirtAddr (虚拟地址) 转换为 usize
+/// 对于大于等于 2^38 的地址执行符号扩展
+/// 这是RISC-V SV39中虚拟地址的正确表示方法
+
 impl From<VirtAddr> for usize {
     fn from(v: VirtAddr) -> Self {
 
         if v.0 >= (1 << (VA_WIDTH_SV39 - 1)) {
 
+            // 1 << (39-1)
+            // = 1 << 38
+            // = 0x0000_0040_0000_0000
+            // ~((1 << 39) - 1)
+            // = ~0x0000_007F_FFFF_FFFF
+            // = 0xFFFF_FF80_0000_0000
             v.0 | (!((1 << VA_WIDTH_SV39) - 1))
         } else {
 
@@ -122,6 +203,9 @@ impl From<VirtAddr> for usize {
         }
     }
 }
+
+/// 从 VirtPageNum (虚拟页号) 转换为 usize
+/// 直接返回内部存储的无符号整数值
 
 impl From<VirtPageNum> for usize {
     fn from(v: VirtPageNum) -> Self {
@@ -131,9 +215,13 @@ impl From<VirtPageNum> for usize {
 }
 
 /// 虚拟地址实现
+/// 提供各种处理虚拟地址的方法
 
 impl VirtAddr {
     /// 获取（向下取整的）虚拟页号
+    ///
+    /// 将虚拟地址除以页大小，得到包含该地址的虚拟页号
+    /// 例如：地址0x1234位于页号0x1
 
     pub fn floor(&self) -> VirtPageNum {
 
@@ -141,6 +229,10 @@ impl VirtAddr {
     }
 
     /// 获取（向上取整的）虚拟页号
+    ///
+    /// 如果地址不是页对齐的，则返回下一个页号
+    /// 用于确保覆盖到地址所在的最后一页
+    /// 例如：地址0x1234位于页号0x1，但0x1FFF向上取整到页号0x2
 
     pub fn ceil(&self) -> VirtPageNum {
 
@@ -148,6 +240,9 @@ impl VirtAddr {
     }
 
     /// 获取虚拟地址的页内偏移
+    ///
+    /// 通过掩码操作获取地址在页内的偏移量（低12位）
+    /// 例如：地址0x1234的页内偏移是0x234
 
     pub fn page_offset(&self) -> usize {
 
@@ -155,12 +250,19 @@ impl VirtAddr {
     }
 
     /// 检查虚拟地址是否按页大小对齐
+    ///
+    /// 当页内偏移为0时，地址是页对齐的
+    /// 对齐的地址可以直接转换为页号
 
     pub fn aligned(&self) -> bool {
 
         self.page_offset() == 0
     }
 }
+
+/// 从 VirtAddr (虚拟地址) 转换为 VirtPageNum (虚拟页号)
+/// 要求虚拟地址必须按页面大小对齐（页内偏移为0）
+/// 然后返回其对应的虚拟页号
 
 impl From<VirtAddr> for VirtPageNum {
     fn from(v: VirtAddr) -> Self {
@@ -171,6 +273,9 @@ impl From<VirtAddr> for VirtPageNum {
     }
 }
 
+/// 从 VirtPageNum (虚拟页号) 转换为 VirtAddr (虚拟地址)
+/// 通过左移 PAGE_SIZE_BITS (12) 位来计算对应的起始虚拟地址
+
 impl From<VirtPageNum> for VirtAddr {
     fn from(v: VirtPageNum) -> Self {
 
@@ -180,6 +285,9 @@ impl From<VirtPageNum> for VirtAddr {
 
 impl PhysAddr {
     /// 获取（向下取整的）物理页号
+    ///
+    /// 将物理地址除以页大小，得到包含该地址的物理页号
+    /// 例如：物理地址0x2234位于物理页号0x2
 
     pub fn floor(&self) -> PhysPageNum {
 
@@ -187,6 +295,10 @@ impl PhysAddr {
     }
 
     /// 获取（向上取整的）物理页号
+    ///
+    /// 如果物理地址不是页对齐的，则返回下一个物理页号
+    /// 用于确保覆盖到地址所在的最后一页
+    /// 例如：地址0x2234位于页号0x2，但0x2FFF向上取整到页号0x3
 
     pub fn ceil(&self) -> PhysPageNum {
 
@@ -194,6 +306,9 @@ impl PhysAddr {
     }
 
     /// 获取物理地址的页内偏移
+    ///
+    /// 通过掩码操作获取地址在物理页内的偏移量（低12位）
+    /// 例如：地址0x2234的页内偏移是0x234
 
     pub fn page_offset(&self) -> usize {
 
@@ -201,12 +316,19 @@ impl PhysAddr {
     }
 
     /// 检查物理地址是否按页大小对齐
+    ///
+    /// 当页内偏移为0时，物理地址是页对齐的
+    /// 对齐的物理地址可以直接转换为物理页号
 
     pub fn aligned(&self) -> bool {
 
         self.page_offset() == 0
     }
 }
+
+/// 从 PhysAddr (物理地址) 转换为 PhysPageNum (物理页号)
+/// 要求物理地址必须按页面大小对齐（页内偏移为0）
+/// 然后返回其对应的物理页号
 
 impl From<PhysAddr> for PhysPageNum {
     fn from(v: PhysAddr) -> Self {
@@ -217,6 +339,9 @@ impl From<PhysAddr> for PhysPageNum {
     }
 }
 
+/// 从 PhysPageNum (物理页号) 转换为 PhysAddr (物理地址)
+/// 通过左移 PAGE_SIZE_BITS (12) 位来计算对应的起始物理地址
+
 impl From<PhysPageNum> for PhysAddr {
     fn from(v: PhysPageNum) -> Self {
 
@@ -226,6 +351,10 @@ impl From<PhysPageNum> for PhysAddr {
 
 impl VirtPageNum {
     /// 获取页表项的索引
+    ///
+    /// 在SV39分页模式中，一个虚拟页号被分为三级，每级占9位
+    /// 这三级索引用于在页表的三级结构中查找对应的页表项
+    /// 返回的数组包含三个索引值[一级索引, 二级索引, 三级索引]
 
     pub fn indexes(&self) -> [usize; 3] {
 
@@ -233,10 +362,13 @@ impl VirtPageNum {
 
         let mut idx = [0usize; 3];
 
+        // 从高到低提取每一级的9位索引
         for i in (0..3).rev() {
 
+            // 每一级索引占用9位(0..511)
             idx[i] = vpn & 511;
 
+            // 右移9位，处理下一级的索引
             vpn >>= 9;
         }
 
@@ -245,8 +377,17 @@ impl VirtPageNum {
 }
 
 impl PhysAddr {
-    ///获取 `PhysAddr` 值的可变引用
     /// 获取物理地址的可变引用
+    ///
+    /// 将物理地址转换为指向类型T的可变引用
+    ///
+    /// # 安全性
+    ///
+    /// 这是一个不安全的操作，因为：
+    /// 1. 它假设物理地址指向的内存区域有效且已初始化
+    /// 2. 它绕过了Rust的所有权检查，返回'static生命周期的引用
+    ///
+    /// 调用者必须确保物理地址有效且对应的内存区域已正确初始化为类型T
 
     pub fn get_mut<T>(&self) -> &'static mut T {
 
@@ -259,6 +400,13 @@ impl PhysAddr {
 
 impl PhysPageNum {
     /// 获取页表（页表项数组）的引用
+    ///
+    /// 将物理页号转换为指向页表项数组的可变引用
+    /// 一个页(4KB)可以容纳512个页表项(每项8字节)
+    ///
+    /// # 安全性
+    ///
+    /// 这是一个不安全的操作，调用者必须确保该物理页确实包含页表
 
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
 
@@ -271,6 +419,13 @@ impl PhysPageNum {
     }
 
     /// 获取页（字节数组）的引用
+    ///
+    /// 将物理页号转换为指向字节数组的可变引用
+    /// 返回一个长度为4096(一个页大小)的u8数组
+    ///
+    /// # 安全性
+    ///
+    /// 这是一个不安全的操作，调用者必须确保对该物理页的访问是有效的
 
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
 
@@ -282,7 +437,14 @@ impl PhysPageNum {
         }
     }
 
-    /// 获取物理地址的可变引用
+    /// 获取物理页内数据的可变引用
+    ///
+    /// 将物理页号转换为指向类型T的可变引用
+    ///
+    /// # 安全性
+    ///
+    /// 这是一个不安全的操作，继承自PhysAddr::get_mut的不安全性
+    /// 调用者必须确保物理页已正确初始化为类型T
 
     pub fn get_mut<T>(&self) -> &'static mut T {
 
@@ -294,27 +456,41 @@ impl PhysPageNum {
 
 /// 物理/虚拟页号的迭代器
 
+/// 定义可以按步进方式迭代的类型特征
+/// 用于在内存管理中遍历连续的页号
+
 pub trait StepByOne {
     /// 步进一个元素（页号）
+    ///
+    /// 将当前元素向后移动一个单位
 
     fn step(&mut self);
 }
 
+/// 为虚拟页号实现StepByOne特征
+/// 使VirtPageNum可以在连续范围内迭代
+
 impl StepByOne for VirtPageNum {
     fn step(&mut self) {
 
+        // 虚拟页号加1，即移动到下一页
         self.0 += 1;
     }
 }
 
-#[derive(Copy, Clone)]
 /// 一个用于类型 T 的简单范围结构
+///
+/// 表示从起点到终点的连续范围，主要用于表示连续的内存页范围
+/// T必须实现StepByOne特征以支持迭代
+#[derive(Copy, Clone)]
 
 pub struct SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 范围的起始值（包含）
     l: T,
+    /// 范围的结束值（不包含）
     r: T,
 }
 
@@ -322,6 +498,17 @@ impl<T> SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 创建一个新的范围
+    ///
+    /// # 参数
+    ///
+    /// * `start` - 范围的起始值（包含）
+    /// * `end` - 范围的结束值（不包含）
+    ///
+    /// # Panics
+    ///
+    /// 如果start大于end，将会panic
+
     pub fn new(start: T, end: T) -> Self {
 
         assert!(start <= end, "start {:?} > end {:?}!", start, end);
@@ -329,16 +516,23 @@ where
         Self { l: start, r: end }
     }
 
+    /// 获取范围的起始值
+
     pub fn get_start(&self) -> T {
 
         self.l
     }
+
+    /// 获取范围的结束值
 
     pub fn get_end(&self) -> T {
 
         self.r
     }
 }
+
+/// 为SimpleRange实现IntoIterator特征
+/// 使SimpleRange可以被用在for循环中
 
 impl<T> IntoIterator for SimpleRange<T>
 where
@@ -355,12 +549,16 @@ where
 }
 
 /// 简单范围结构的迭代器
+///
+/// 用于遍历SimpleRange中的所有元素
 
 pub struct SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 当前迭代到的值
     current: T,
+    /// 迭代结束的值（不包含）
     end: T,
 }
 
@@ -368,17 +566,31 @@ impl<T> SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 创建一个新的范围迭代器
+    ///
+    /// # 参数
+    ///
+    /// * `l` - 迭代的起始值
+    /// * `r` - 迭代的结束值（不包含）
+
     pub fn new(l: T, r: T) -> Self {
 
         Self { current: l, end: r }
     }
 }
 
+/// 实现Iterator特征，使SimpleRangeIterator成为一个标准迭代器
+
 impl<T> Iterator for SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
     type Item = T;
+
+    /// 获取迭代器中的下一个元素
+    ///
+    /// 如果current等于end，则迭代结束，返回None
+    /// 否则返回当前值，并将current向前步进一次
 
     fn next(&mut self) -> Option<Self::Item> {
 
@@ -397,5 +609,8 @@ where
 }
 
 /// 虚拟页号的简单范围结构
+///
+/// 类型别名，表示一个包含连续虚拟页号的范围
+/// 常用于表示一段连续的虚拟内存区域
 
 pub type VPNRange = SimpleRange<VirtPageNum>;
