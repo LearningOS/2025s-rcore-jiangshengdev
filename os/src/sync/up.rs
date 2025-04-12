@@ -18,6 +18,7 @@ pub struct UPSafeCell<T> {
 unsafe impl<T> Sync for UPSafeCell<T> {}
 
 impl<T> UPSafeCell<T> {
+    /// # Safety
     /// # 安全性
     /// 用户负责保证内部结构只在单处理器环境中使用。
 
