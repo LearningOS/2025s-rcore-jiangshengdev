@@ -41,7 +41,7 @@ bitflags! {
 /// 页表项结构
 ///
 /// RISC-V SV39 分页模式下的页表项，包含 44 位物理页号和 10 位标志位
-/// 格式：[63:10] PPN, [9:0] 标志位
+/// 格式：[53:10] PPN, [9:0] 标志位
 /// 其中 [9:8] 为保留位，[7:0] 为 PTEFlags 定义的标志位
 
 pub struct PageTableEntry {
@@ -85,7 +85,7 @@ impl PageTableEntry {
     ///
     /// # 返回值
     ///
-    /// 从页表项中提取物理页号部分 (bits[54:10])
+    /// 从页表项中提取物理页号部分 (bits[53:10])
     /// 在 SV39 模式中，有效物理页号为 44 位
 
     pub fn ppn(&self) -> PhysPageNum {
@@ -231,7 +231,7 @@ impl PageTable {
     /// # 返回值
     ///
     /// 如果成功找到或创建路径，返回指向最终页表项的可变引用
-    /// 如果内存分配失败，返回 None
+    /// 如果内存分配失败，会触发 panic
 
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
 
