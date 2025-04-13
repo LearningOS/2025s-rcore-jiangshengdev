@@ -1,5 +1,5 @@
 //! Process management syscalls
-use crate::mm::page_table::write_user_struct;
+use crate::mm::page_table::{read_user_memory, write_user_memory, write_user_struct};
 use crate::task::{
     change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count,
     suspend_current_and_run_next,
@@ -48,19 +48,11 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
     trace!("kernel: sys_trace");
 
+    let token = current_user_token();
+
     match trace_request {
-        0 => {
-            let addr = id as *const u8;
-            unsafe { *addr as isize }
-        }
-        1 => {
-            let addr = id as *mut u8;
-            let value = data as u8;
-            unsafe {
-                *addr = value;
-            }
-            0
-        }
+        0 => read_user_memory(token, id),
+        1 => write_user_memory(token, id, data),
         2 => get_syscall_count(id) as isize,
         _ => -1,
     }
