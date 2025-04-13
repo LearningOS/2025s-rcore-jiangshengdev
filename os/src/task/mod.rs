@@ -11,9 +11,9 @@
 
 mod context;
 mod switch;
+mod syscall_stats;
 #[allow(clippy::module_inception)]
 mod task;
-mod syscall_stats;
 
 use crate::loader::{get_app_data, get_num_app};
 use crate::sync::UPSafeCell;

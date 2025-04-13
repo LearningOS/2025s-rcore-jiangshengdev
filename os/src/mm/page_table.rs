@@ -185,9 +185,8 @@ pub fn read_user_struct<T: Copy>(token: usize, ptr: *const T) -> T {
     let size = core::mem::size_of::<T>();
     let slices = translated_byte_buffer(token, ptr as *const u8, size);
     let mut result = core::mem::MaybeUninit::<T>::uninit();
-    let dst_bytes = unsafe {
-        core::slice::from_raw_parts_mut(result.as_mut_ptr() as *mut u8, size)
-    };
+    let dst_bytes =
+        unsafe { core::slice::from_raw_parts_mut(result.as_mut_ptr() as *mut u8, size) };
     let mut copied = 0;
     for chunk in slices {
         let remaining = size - copied;
@@ -205,9 +204,7 @@ pub fn read_user_struct<T: Copy>(token: usize, ptr: *const T) -> T {
 pub fn write_user_struct<T: Copy>(token: usize, ptr: *mut T, value: T) {
     let size = core::mem::size_of::<T>();
     let slices = translated_byte_buffer(token, ptr as *const u8, size);
-    let src_bytes = unsafe {
-        core::slice::from_raw_parts(&value as *const _ as *const u8, size)
-    };
+    let src_bytes = unsafe { core::slice::from_raw_parts(&value as *const _ as *const u8, size) };
     let mut copied = 0;
     for chunk in slices {
         let remaining = size - copied;

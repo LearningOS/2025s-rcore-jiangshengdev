@@ -1,5 +1,7 @@
 //! Process management syscalls
-use crate::task::{change_program_brk, exit_current_and_run_next, get_syscall_count, suspend_current_and_run_next};
+use crate::task::{
+    change_program_brk, exit_current_and_run_next, get_syscall_count, suspend_current_and_run_next,
+};
 use crate::timer::get_time_us;
 
 #[repr(C)]
