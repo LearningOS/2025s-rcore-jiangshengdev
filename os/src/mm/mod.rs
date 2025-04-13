@@ -10,7 +10,8 @@ mod address;
 mod frame_allocator;
 mod heap_allocator;
 mod memory_set;
-pub(crate) mod page_table;
+mod page_table;
+mod user;
 
 pub use address::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use address::{StepByOne, VPNRange};
@@ -19,6 +20,7 @@ pub use memory_set::remap_test;
 pub use memory_set::{kernel_stack_position, MapPermission, MemorySet, KERNEL_SPACE};
 pub use page_table::{translated_byte_buffer, PageTableEntry};
 pub use page_table::{PTEFlags, PageTable};
+pub use user::{read_user_memory, read_user_struct, write_user_memory, write_user_struct};
 
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {

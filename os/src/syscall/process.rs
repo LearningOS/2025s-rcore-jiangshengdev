@@ -1,5 +1,5 @@
 //! Process management syscalls
-use crate::mm::page_table::{read_user_memory, write_user_memory, write_user_struct};
+use crate::mm::{read_user_memory, write_user_memory, write_user_struct};
 use crate::task::{
     change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count,
     suspend_current_and_run_next,
