@@ -144,6 +144,37 @@ impl TaskControlBlock {
             -1 // 失败返回-1
         }
     }
+
+    /// 取消虚存的映射
+    pub fn munmap(&mut self, start: usize, len: usize) -> isize {
+        // 长度为0直接返回成功
+        if len == 0 {
+            return 0;
+        }
+
+        let start_va = VirtAddr::from(start);
+
+        // 检查起始地址是否对齐页面大小
+        if !start_va.aligned() {
+            return -1;
+        }
+
+        // 检查是否存在完全匹配的映射（起始地址和长度都必须精确匹配）
+        if let Some(index) = self.map_records.find_index(start, len) {
+            // 执行取消映射操作
+            let result = self.memory_set.munmap(start_va, len);
+
+            // 如果取消映射成功，从记录中也移除这个映射
+            if result == 0 {
+                self.map_records.remove(index);
+            }
+
+            result
+        } else {
+            // 没有找到完全匹配的映射
+            -1
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq)]

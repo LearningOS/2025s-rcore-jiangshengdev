@@ -63,6 +63,28 @@ impl MemorySet {
             None,
         );
     }
+    /// 从内存集中移除指定的内存区域
+    pub fn remove_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) -> bool {
+        // 找到对应的 MapArea 下标
+        let mut target_area_idx = None;
+        for (i, area) in self.areas.iter().enumerate() {
+            if area.vpn_range.get_start() == start_va.floor()
+                && area.vpn_range.get_end() == end_va.ceil()
+            {
+                target_area_idx = Some(i);
+                break;
+            }
+        }
+
+        // 如果找到了对应区域，则移除它
+        if let Some(idx) = target_area_idx {
+            let mut area = self.areas.remove(idx);
+            area.unmap(&mut self.page_table);
+            true // 移除成功
+        } else {
+            false // 未找到匹配区域
+        }
+    }
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
         if let Some(data) = data {
@@ -273,6 +295,21 @@ impl MemorySet {
 
         self.insert_framed_area(start, end, permission);
         true
+    }
+
+    /// 取消虚存的映射
+    pub fn munmap(&mut self, start: VirtAddr, len: usize) -> isize {
+        if len == 0 {
+            return 0;
+        }
+        let end = VirtAddr::from(start.0 + len);
+
+        // 复用 remove_framed_area 方法移除区域
+        if self.remove_framed_area(start, end) {
+            0 // 成功返回0
+        } else {
+            -1 // 失败返回-1
+        }
     }
 }
 

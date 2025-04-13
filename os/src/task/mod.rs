@@ -175,6 +175,13 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].mmap(start, len, prot)
     }
+
+    /// 取消到 [start, start + len) 虚存的映射
+    pub fn munmap_current_task(&self, start: usize, len: usize) -> isize {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].munmap(start, len)
+    }
 }
 
 /// Run the first task in task list.
@@ -238,4 +245,9 @@ pub fn change_program_brk(size: i32) -> Option<usize> {
 /// 为当前运行的任务创建内存映射
 pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
     TASK_MANAGER.mmap_current_task(start, len, prot)
+}
+
+/// 取消到 [start, start + len) 虚存的映射
+pub fn munmap(start: usize, len: usize) -> isize {
+    TASK_MANAGER.munmap_current_task(start, len)
 }

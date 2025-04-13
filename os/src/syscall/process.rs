@@ -3,7 +3,7 @@
 use crate::mm::{read_user_memory, write_user_memory, write_user_struct};
 use crate::task::{
     change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count, mmap,
-    suspend_current_and_run_next,
+    munmap, suspend_current_and_run_next,
 };
 use crate::timer::get_time_us;
 
@@ -67,10 +67,10 @@ pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
 }
 
 // YOUR JOB: Implement munmap.
-pub fn sys_munmap(_start: usize, _len: usize) -> isize {
+pub fn sys_munmap(start: usize, len: usize) -> isize {
     trace!("kernel: sys_munmap");
 
-    -1
+    munmap(start, len)
 }
 
 /// change data segment size
