@@ -1,11 +1,13 @@
 //! Process management syscalls
+use crate::mm::page_table::write_user_struct;
 use crate::task::{
-    change_program_brk, exit_current_and_run_next, get_syscall_count, suspend_current_and_run_next,
+    change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count,
+    suspend_current_and_run_next,
 };
 use crate::timer::get_time_us;
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct TimeVal {
     pub sec: usize,
     pub usec: usize,
@@ -31,12 +33,13 @@ pub fn sys_yield() -> isize {
 pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     trace!("kernel: sys_get_time");
     let us = get_time_us();
-    unsafe {
-        *ts = TimeVal {
-            sec: us / 1_000_000,
-            usec: us % 1_000_000,
-        };
-    }
+    let time_val = TimeVal {
+        sec: us / 1_000_000,
+        usec: us % 1_000_000,
+    };
+
+    let token = current_user_token();
+    write_user_struct(token, ts, time_val);
     0
 }
 

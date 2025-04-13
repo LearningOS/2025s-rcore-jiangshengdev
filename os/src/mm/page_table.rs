@@ -186,6 +186,7 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
     v
 }
 
+#[allow(unused)]
 /// 读取用户空间中的结构体 T
 pub fn read_user_struct<T: Copy>(token: usize, ptr: *const T) -> T {
     let size = core::mem::size_of::<T>();
