@@ -127,11 +127,7 @@ impl TaskControlBlock {
         let permission = MapPermission::from(flags);
 
         // 直接使用MemorySet的mmap方法，该方法已经处理了重叠检查
-        if self.memory_set.mmap(start_va, len, permission) {
-            0 // 成功返回0
-        } else {
-            -1 // 失败返回-1
-        }
+        self.memory_set.mmap(start_va, len, permission)
     }
 
     /// 取消虚存的映射

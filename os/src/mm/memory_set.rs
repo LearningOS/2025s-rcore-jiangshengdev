@@ -269,7 +269,7 @@ impl MemorySet {
 
     /// 创建内存映射区域
     /// 将从 start 开始，长度为 len 的虚拟内存区域与物理内存映射，具有指定的权限
-    pub fn mmap(&mut self, start: VirtAddr, len: usize, permission: MapPermission) -> bool {
+    pub fn mmap(&mut self, start: VirtAddr, len: usize, permission: MapPermission) -> isize {
         self.mmap_manager
             .mmap(&mut self.page_table, start, len, permission)
     }

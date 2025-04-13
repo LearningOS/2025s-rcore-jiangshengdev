@@ -51,9 +51,9 @@ impl MmapAreaManager {
         start: VirtAddr,
         len: usize,
         permission: MapPermission,
-    ) -> bool {
+    ) -> isize {
         if len == 0 {
-            return true;
+            return 0;
         }
         let end = VirtAddr::from(start.0 + len);
 
@@ -62,14 +62,14 @@ impl MmapAreaManager {
         let end_vpn = end.ceil();
 
         if self.check_overlap(start_vpn, end_vpn) {
-            return false;
+            return -1;
         }
 
         // 创建新的映射区域并添加到mmap_areas
         let mut map_area = MapArea::new(start, end, MapType::Framed, permission);
         map_area.map(page_table);
         self.mmap_areas.insert(start_vpn, map_area);
-        true
+        0
     }
 
     /// 取消虚存的映射
@@ -84,14 +84,14 @@ impl MmapAreaManager {
         match self.mmap_areas.remove(&start_vpn) {
             Some(mut area) if area.vpn_range.get_end() == end_vpn => {
                 area.unmap(page_table);
-                0 // 成功返回0
+                0
             }
             Some(area) => {
                 // 长度不匹配，将区域放回
                 self.mmap_areas.insert(start_vpn, area);
                 -1
             }
-            None => -1, // 未找到匹配区域
+            None => -1,
         }
     }
 
