@@ -1,5 +1,6 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
+use super::MmapAreaManager;
 use super::{frame_alloc, FrameTracker};
 use super::{PTEFlags, PageTable, PageTableEntry};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
@@ -37,6 +38,8 @@ lazy_static! {
 pub struct MemorySet {
     page_table: PageTable,
     areas: Vec<MapArea>,
+    /// 匿名映射区域管理器
+    mmap_manager: MmapAreaManager,
 }
 
 impl MemorySet {
@@ -45,6 +48,7 @@ impl MemorySet {
         Self {
             page_table: PageTable::new(),
             areas: Vec::new(),
+            mmap_manager: MmapAreaManager::new(),
         }
     }
     /// Get the page table token
@@ -62,28 +66,6 @@ impl MemorySet {
             MapArea::new(start_va, end_va, MapType::Framed, permission),
             None,
         );
-    }
-    /// 从内存集中移除指定的内存区域
-    pub fn remove_framed_area(&mut self, start_va: VirtAddr, end_va: VirtAddr) -> bool {
-        // 找到对应的 MapArea 下标
-        let mut target_area_idx = None;
-        for (i, area) in self.areas.iter().enumerate() {
-            if area.vpn_range.get_start() == start_va.floor()
-                && area.vpn_range.get_end() == end_va.ceil()
-            {
-                target_area_idx = Some(i);
-                break;
-            }
-        }
-
-        // 如果找到了对应区域，则移除它
-        if let Some(idx) = target_area_idx {
-            let mut area = self.areas.remove(idx);
-            area.unmap(&mut self.page_table);
-            true // 移除成功
-        } else {
-            false // 未找到匹配区域
-        }
     }
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
@@ -288,34 +270,19 @@ impl MemorySet {
     /// 创建内存映射区域
     /// 将从 start 开始，长度为 len 的虚拟内存区域与物理内存映射，具有指定的权限
     pub fn mmap(&mut self, start: VirtAddr, len: usize, permission: MapPermission) -> bool {
-        if len == 0 {
-            return true;
-        }
-        let end = VirtAddr::from(start.0 + len);
-
-        self.insert_framed_area(start, end, permission);
-        true
+        self.mmap_manager
+            .mmap(&mut self.page_table, start, len, permission)
     }
 
     /// 取消虚存的映射
     pub fn munmap(&mut self, start: VirtAddr, len: usize) -> isize {
-        if len == 0 {
-            return 0;
-        }
-        let end = VirtAddr::from(start.0 + len);
-
-        // 复用 remove_framed_area 方法移除区域
-        if self.remove_framed_area(start, end) {
-            0 // 成功返回0
-        } else {
-            -1 // 失败返回-1
-        }
+        self.mmap_manager.munmap(&mut self.page_table, start, len)
     }
 }
 
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
-    vpn_range: VPNRange,
+    pub(crate) vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
     map_type: MapType,
     map_perm: MapPermission,

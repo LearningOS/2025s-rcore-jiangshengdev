@@ -2,8 +2,8 @@
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{
-    kernel_stack_position, parse_prot_flags, MapPermission, MapRecordManager, MemorySet,
-    PhysPageNum, VirtAddr, KERNEL_SPACE,
+    kernel_stack_position, parse_prot_flags, MapPermission, MemorySet, PhysPageNum, VirtAddr,
+    KERNEL_SPACE,
 };
 use crate::trap::{trap_handler, TrapContext};
 
@@ -29,9 +29,6 @@ pub struct TaskControlBlock {
 
     /// Program break
     pub program_brk: usize,
-
-    /// 记录用户空间的内存映射
-    pub map_records: MapRecordManager,
 }
 
 impl TaskControlBlock {
@@ -67,7 +64,6 @@ impl TaskControlBlock {
             base_size: user_sp,
             heap_bottom: user_sp,
             program_brk: user_sp,
-            map_records: MapRecordManager::new(),
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.get_trap_cx();
@@ -130,15 +126,8 @@ impl TaskControlBlock {
         // 将ProtFlags转换为MapPermission
         let permission = MapPermission::from(flags);
 
-        // 检查是否与现有映射重叠
-        if self.map_records.check_overlap(start, len) {
-            return -1;
-        }
-
-        // 调用MemorySet的mmap方法
+        // 直接使用MemorySet的mmap方法，该方法已经处理了重叠检查
         if self.memory_set.mmap(start_va, len, permission) {
-            // 记录映射信息
-            self.map_records.add(start, len, permission);
             0 // 成功返回0
         } else {
             -1 // 失败返回-1
@@ -159,21 +148,8 @@ impl TaskControlBlock {
             return -1;
         }
 
-        // 检查是否存在完全匹配的映射（起始地址和长度都必须精确匹配）
-        if let Some(index) = self.map_records.find_index(start, len) {
-            // 执行取消映射操作
-            let result = self.memory_set.munmap(start_va, len);
-
-            // 如果取消映射成功，从记录中也移除这个映射
-            if result == 0 {
-                self.map_records.remove(index);
-            }
-
-            result
-        } else {
-            // 没有找到完全匹配的映射
-            -1
-        }
+        // 直接使用 MemorySet 的 munmap 方法解除映射
+        self.memory_set.munmap(start_va, len)
     }
 }
 
