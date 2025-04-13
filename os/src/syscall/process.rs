@@ -1,7 +1,8 @@
 //! Process management syscalls
+
 use crate::mm::{read_user_memory, write_user_memory, write_user_struct};
 use crate::task::{
-    change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count,
+    change_program_brk, current_user_token, exit_current_and_run_next, get_syscall_count, mmap,
     suspend_current_and_run_next,
 };
 use crate::timer::get_time_us;
@@ -59,16 +60,19 @@ pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
 }
 
 // YOUR JOB: Implement mmap.
-pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
-    trace!("kernel: sys_mmap NOT IMPLEMENTED YET!");
-    -1
+pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
+    trace!("kernel: sys_mmap");
+
+    mmap(start, len, prot)
 }
 
 // YOUR JOB: Implement munmap.
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
-    trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
+    trace!("kernel: sys_munmap");
+
     -1
 }
+
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {
     trace!("kernel: sys_sbrk");

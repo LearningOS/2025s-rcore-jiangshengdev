@@ -168,6 +168,13 @@ impl TaskManager {
         let current = inner.current_task;
         syscall_stats::get_syscall_count(current, syscall_id)
     }
+
+    /// 为当前运行的任务创建内存映射
+    pub fn mmap_current_task(&self, start: usize, len: usize, prot: usize) -> isize {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].mmap(start, len, prot)
+    }
 }
 
 /// Run the first task in task list.
@@ -226,4 +233,9 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 /// Change the current 'Running' task's program break
 pub fn change_program_brk(size: i32) -> Option<usize> {
     TASK_MANAGER.change_current_program_brk(size)
+}
+
+/// 为当前运行的任务创建内存映射
+pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
+    TASK_MANAGER.mmap_current_task(start, len, prot)
 }

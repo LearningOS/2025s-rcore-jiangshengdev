@@ -262,7 +262,20 @@ impl MemorySet {
             false
         }
     }
+
+    /// 创建内存映射区域
+    /// 将从 start 开始，长度为 len 的虚拟内存区域与物理内存映射，具有指定的权限
+    pub fn mmap(&mut self, start: VirtAddr, len: usize, permission: MapPermission) -> bool {
+        if len == 0 {
+            return true;
+        }
+        let end = VirtAddr::from(start.0 + len);
+
+        self.insert_framed_area(start, end, permission);
+        true
+    }
 }
+
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
     vpn_range: VPNRange,

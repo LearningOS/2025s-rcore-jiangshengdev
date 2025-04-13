@@ -2,7 +2,8 @@
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{
-    kernel_stack_position, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE,
+    kernel_stack_position, parse_prot_flags, MapPermission, MapRecordManager, MemorySet,
+    PhysPageNum, VirtAddr, KERNEL_SPACE,
 };
 use crate::trap::{trap_handler, TrapContext};
 
@@ -28,6 +29,9 @@ pub struct TaskControlBlock {
 
     /// Program break
     pub program_brk: usize,
+
+    /// 记录用户空间的内存映射
+    pub map_records: MapRecordManager,
 }
 
 impl TaskControlBlock {
@@ -63,6 +67,7 @@ impl TaskControlBlock {
             base_size: user_sp,
             heap_bottom: user_sp,
             program_brk: user_sp,
+            map_records: MapRecordManager::new(),
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.get_trap_cx();
@@ -94,6 +99,49 @@ impl TaskControlBlock {
             Some(old_break)
         } else {
             None
+        }
+    }
+
+    /// 为任务创建内存映射
+    pub fn mmap(&mut self, start: usize, len: usize, prot: usize) -> isize {
+        // 长度为0直接返回成功
+        if len == 0 {
+            return 0;
+        }
+
+        let start_va = VirtAddr::from(start);
+
+        // start 没有按页大小对齐
+        if !start_va.aligned() {
+            return -1;
+        }
+
+        // prot & 0x7 = 0 (这样的内存无意义)
+        if prot & 0x7 == 0 {
+            return -1;
+        }
+
+        // 验证prot参数
+        let flags = match parse_prot_flags(prot) {
+            Some(flags) => flags,
+            None => return -1,
+        };
+
+        // 将ProtFlags转换为MapPermission
+        let permission = MapPermission::from(flags);
+
+        // 检查是否与现有映射重叠
+        if self.map_records.check_overlap(start, len) {
+            return -1;
+        }
+
+        // 调用MemorySet的mmap方法
+        if self.memory_set.mmap(start_va, len, permission) {
+            // 记录映射信息
+            self.map_records.add(start, len, permission);
+            0 // 成功返回0
+        } else {
+            -1 // 失败返回-1
         }
     }
 }
