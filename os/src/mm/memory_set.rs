@@ -88,10 +88,11 @@ impl MemorySet {
     pub fn new_bare() -> Self {
 
         // 创建一个包含空页表且没有映射区域的新地址空间
-        Self {
-            page_table: PageTable::new(),
-            areas: Vec::new(),
-        }
+        let page_table = PageTable::new();
+
+        let areas = Vec::new();
+
+        Self { page_table, areas }
     }
 
     /// 获取页表令牌

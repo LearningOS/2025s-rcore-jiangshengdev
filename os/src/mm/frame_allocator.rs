@@ -126,10 +126,14 @@ impl StackFrameAllocator {
     pub fn init(&mut self, l: PhysPageNum, r: PhysPageNum) {
 
         // 设置起始页号
-        self.current = l.0;
+        let current = l.0;
+
+        self.current = current;
 
         // 设置结束页号
-        self.end = r.0;
+        let end = r.0;
+
+        self.end = end;
 
         // 输出可用页帧数量的调试信息
         trace!("剩余 {} 个物理页帧。", self.end - self.current);
@@ -263,7 +267,9 @@ pub fn init_frame_allocator() {
     let r = end.floor();
 
     // 初始化全局分配器的内存区间
-    FRAME_ALLOCATOR.exclusive_access().init(l, r);
+    let mut frame_allocator = FRAME_ALLOCATOR.exclusive_access();
+
+    frame_allocator.init(l, r);
 }
 
 /// 分配一个物理页帧并返回其追踪器
@@ -276,10 +282,11 @@ pub fn init_frame_allocator() {
 pub fn frame_alloc() -> Option<FrameTracker> {
 
     // 从全局分配器获取页号，如果成功则包装为 FrameTracker
-    FRAME_ALLOCATOR
-        .exclusive_access()
-        .alloc()
-        .map(FrameTracker::new)
+    let mut frame_allocator = FRAME_ALLOCATOR.exclusive_access();
+
+    let ppn = frame_allocator.alloc();
+
+    ppn.map(FrameTracker::new)
 }
 
 /// 回收一个具有给定物理页号的物理页帧

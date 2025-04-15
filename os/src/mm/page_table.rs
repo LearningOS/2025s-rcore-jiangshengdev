@@ -6,7 +6,7 @@
 //! - 地址翻译以及用户空间内存访问辅助函数
 
 use super::{frame_alloc, FrameTracker, PhysPageNum, StepByOne, VirtAddr, VirtPageNum};
-use crate::utils::do_nothing;
+use crate::utils::{consume, do_nothing};
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
@@ -250,8 +250,18 @@ impl PageTable {
             // 获取当前级别页表的页表项数组
             let arr = ppn.get_pte_array();
 
+            let arr_ptr = arr.as_mut_ptr() as *mut u8;
+
+            let arr_addr = arr_ptr as usize;
+
+            consume(arr_addr);
+
             // 获取对应索引的页表项
             let pte = &mut arr[*idx];
+
+            let pte_ptr = pte as *mut PageTableEntry as *mut u8;
+
+            consume(pte_ptr);
 
             if i == 2 {
 

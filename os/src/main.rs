@@ -26,6 +26,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate log;
 
+use crate::utils::do_nothing;
+
 #[macro_use]
 
 mod console;
@@ -61,7 +63,19 @@ fn clear_bss() {
 
     unsafe {
 
-        core::ptr::write_bytes(sbss as usize as *mut u8, 0, ebss as usize - sbss as usize);
+        let sbss = sbss as usize;
+
+        let ebss = ebss as usize;
+
+        let dst = sbss as *mut u8;
+
+        let val = 0;
+
+        let count = ebss - sbss;
+
+        do_nothing();
+
+        core::ptr::write_bytes(dst, val, count);
     }
 }
 
