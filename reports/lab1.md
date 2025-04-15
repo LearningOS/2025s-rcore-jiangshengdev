@@ -36,7 +36,7 @@
 
     根据 virt 硬件可知：0x0 处非物理内存地址，而是 Debug 用的内存映射，不可写入
 
-    写入触发了 Trap::Exception(Exception::StoreFault) 异常
+    写入触发了 Trap::Exception (Exception::StoreFault) 异常
 
 - ch2b_bad_instructions.rs
 
@@ -50,7 +50,7 @@
 
   xRET 指令可以在特权模式 x 或更高模式下执行，不可在用户模式下执行
 
-  触发了 Trap::Exception(Exception::IllegalInstruction)
+  触发了 Trap::Exception (Exception::IllegalInstruction)
 
 - ch2b_bad_register.rs
 
@@ -67,7 +67,7 @@
 
   监督者状态 (sstatus) 寄存器是一个监督级 CSR，不可在用户模式下操作
 
-  触发了 Trap::Exception(Exception::IllegalInstruction)
+  触发了 Trap::Exception (Exception::IllegalInstruction)
 
   ```
   [rustsbi] RustSBI version 0.3.0-alpha.2, adapting to RISC-V SBI v1.0.0
@@ -84,6 +84,7 @@
    所以其代表了 **内核栈顶**，内核栈顶保存了 TrapContext 的信息
 
    - 一种是第一个程序 run_first_task 执行完 switch 之后
+
    - 另一种是 2 个程序切换 run_next_task 执行完 switch 之后
 
    2. L43-L48：这几行汇编代码特殊处理了哪些寄存器？这些寄存器的的值对于进入用户态有何意义？请分别解释。
@@ -100,7 +101,9 @@
    处理了 sstatus, sepc, sscratch 3 个寄存器
 
    - sstatus 当执行 SRET 指令以从陷阱处理程序返回时，如果 sstatus 寄存器的 SPP 位为 0，则特权级别设置为用户模式
+
    - sepc 暂存了上一次用户程序暂停的位置，是接下来用户程序要继续执行的 pc 位置
+
    - sscratch 暂存了用户上一次的 sp 栈位置，是接下来用户程序需要接着继续使用的
 
    3. L50-L56：为何跳过了 `x2` 和 `x4`？
@@ -116,7 +119,7 @@
       ```
 
    标准调用约定使用寄存器 x2 作为堆栈指针，x2 即是 sp 栈指针，暂时需要他来进行相对偏移操作不能覆盖，后续会单独处理
-   x4 即是 tp 线程指针（Thread pointer），其值为当前的硬件线程编号，在系统的整个生命周期内保持不变，无需处理
+   x4 即是 tp 线程指针 (Thread pointer)，其值为当前的硬件线程编号，在系统的整个生命周期内保持不变，无需处理
 
    4. L60：该指令之后，`sp` 和 `sscratch` 中的值分别有什么意义？
 
@@ -125,6 +128,7 @@
    ```
 
    - 执行之前，sp 为内核栈指针，sscratch 为用户栈指针
+
    - 执行之后，sp 为用户栈指针，sscratch 为内核栈指针
 
    5. `__restore`：中发生状态切换在哪一条指令？为何该指令执行之后会进入用户态？
@@ -140,6 +144,7 @@
    \_\_alltraps 中
 
    - 执行之前，sp 为用户栈指针，sscratch 为内核栈指针
+
    - 执行之后，sp 为内核栈指针，sscratch 为用户栈指针
 
    7. 从 U 态进入 S 态是哪一条指令发生的？
@@ -149,14 +154,29 @@
 
 ### 荣誉准则
 
-1. 在完成本次实验的过程（含此前学习的过程）中，我曾分别与 **以下各位** 就（与本次实验相关的）以下方面做过交流，还在代码中对应的位置以注释形式记录了具体的交流对象及内容：
+1. 在完成本次实验的过程 (含此前学习的过程) 中，我曾分别与 **以下各位** 就 (与本次实验相关的) 以下方面做过交流，还在代码中对应的位置以注释形式记录了具体的交流对象及内容：
+
+   _《你交流的对象说明》_
+
+   2025 春夏季 OS 训练营专业阶段 1 群
+
+   有事打电话 2025/03/29 21:55
+   关于 tcb 中添加一个［usize；512］gettime 返回 0 的解决办法：
+   1、512 改成 500？？？？
+   2、加大 boot_stack？？？
+   3、kernel_log_info () 全改成 println？？？
 
 2. 此外，我也参考了 **以下资料** ，还在代码中对应的位置以注释形式记录了具体的参考来源及内容：
+
+   _《你参考的资料说明》_
+
+   The RISC-V Instruction Set Manual Volume I: Unprivileged Architecture
+   The RISC-V Instruction Set Manual: Volume II: Privileged Architecture
 
 3. 我独立完成了本次实验除以上方面之外的所有工作，包括代码与文档。
    我清楚地知道，从以上方面获得的信息在一定程度上降低了实验难度，可能会影响起评分。
 
 4. 我从未使用过他人的代码，不管是原封不动地复制，还是经过了某些等价转换。
-   我未曾也不会向他人（含此后各届同学）复制或公开我的实验代码，我有义务妥善保管好它们。
+   我未曾也不会向他人 (含此后各届同学) 复制或公开我的实验代码，我有义务妥善保管好它们。
    我提交至本实验的评测系统的代码，均无意于破坏或妨碍任何计算机系统的正常运转。
-   我清楚地知道，以上情况均为本课程纪律所禁止，若违反，对应的实验成绩将按“-100”分计。
+   我清楚地知道，以上情况均为本课程纪律所禁止，若违反，对应的实验成绩将按 “-100” 分计。
