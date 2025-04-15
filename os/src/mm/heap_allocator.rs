@@ -35,6 +35,7 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
 ///
 /// 静态分配的字节数组，用作内核堆的存储空间
 /// 初始值全为零，大小由 KERNEL_HEAP_SIZE 常量决定
+#[no_mangle]
 
 static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 
