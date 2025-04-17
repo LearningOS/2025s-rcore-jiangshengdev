@@ -21,6 +21,12 @@ pub struct Processor {
     idle_task_cx: TaskContext,
 }
 
+impl Default for Processor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Processor {
     ///Create an empty Processor
     pub fn new() -> Self {
