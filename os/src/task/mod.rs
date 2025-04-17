@@ -1,18 +1,14 @@
-//! Task management implementation
+//! 任务管理实现。
 //!
-//! Everything about task management, like starting and switching tasks is
-//! implemented here.
+//! 所有与任务管理相关的内容，如任务的启动与切换，都在此实现。
 //!
-//! A single global instance of [`TaskManager`] called `TASK_MANAGER` controls
-//! all the tasks in the whole operating system.
+//! 全局唯一的 [`TaskManager`] 实例 `TASK_MANAGER` 管理整个操作系统中的所有任务。
 //!
-//! A single global instance of [`Processor`] called `PROCESSOR` monitors running
-//! task(s) for each core.
+//! 全局唯一的 [`Processor`] 实例 `PROCESSOR` 监控每个核上的运行任务。
 //!
-//! A single global instance of `PID_ALLOCATOR` allocates pid for user apps.
+//! 全局唯一的 `PID_ALLOCATOR` 为用户应用分配 pid。
 //!
-//! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
-//! might not be what you expect.
+//! 注意 `switch.S` 中的 `__switch` 汇编函数，其控制流可能与你预期不同。
 mod context;
 mod id;
 mod manager;
@@ -35,31 +31,32 @@ pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
     Processor,
 };
-/// Suspend the current 'Running' task and run the next task in task list.
+
+/// 挂起当前“运行中”任务并运行下一个任务。
 pub fn suspend_current_and_run_next() {
-    // There must be an application running.
+    // 必须有一个应用正在运行。
     let task = take_current_task().unwrap();
 
-    // ---- access current TCB exclusively
+    // ---- 独占访问当前 TCB
     let mut task_inner = task.inner_exclusive_access();
     let task_cx_ptr = &mut task_inner.task_cx as *mut TaskContext;
-    // Change status to Ready
+    // 状态改为 Ready
     task_inner.task_status = TaskStatus::Ready;
     drop(task_inner);
-    // ---- release current PCB
+    // ---- 释放当前 PCB
 
-    // push back to ready queue.
+    // 放回就绪队列。
     add_task(task);
-    // jump to scheduling cycle
+    // 跳转到调度循环
     schedule(task_cx_ptr);
 }
 
-/// pid of usertests app in make run TEST=1
+/// usertests 应用的 pid（make run TEST=1 时）。
 pub const IDLE_PID: usize = 0;
 
-/// Exit the current 'Running' task and run the next task in task list.
+/// 退出当前“运行中”任务并运行下一个任务。
 pub fn exit_current_and_run_next(exit_code: i32) {
-    // take from Processor
+    // 从 Processor 取出
     let task = take_current_task().unwrap();
 
     let pid = task.getpid();
@@ -71,15 +68,15 @@ pub fn exit_current_and_run_next(exit_code: i32) {
         panic!("All applications completed!");
     }
 
-    // **** access current TCB exclusively
+    // **** 独占访问当前 TCB
     let mut inner = task.inner_exclusive_access();
-    // Change status to Zombie
+    // 状态改为 Zombie
     inner.task_status = TaskStatus::Zombie;
-    // Record exit code
+    // 记录退出码
     inner.exit_code = exit_code;
-    // do not move to its parent but under initproc
+    // 不移动到父进程而是挂到 initproc 下
 
-    // ++++++ access initproc TCB exclusively
+    // ++++++ 独占访问 initproc TCB
     {
         let mut initproc_inner = INITPROC.inner_exclusive_access();
         for child in inner.children.iter() {
@@ -87,31 +84,31 @@ pub fn exit_current_and_run_next(exit_code: i32) {
             initproc_inner.children.push(child.clone());
         }
     }
-    // ++++++ release parent PCB
+    // ++++++ 释放父 PCB
 
     inner.children.clear();
-    // deallocate user space
+    // 释放用户空间
     inner.memory_set.recycle_data_pages();
     drop(inner);
-    // **** release current PCB
-    // drop task manually to maintain rc correctly
+    // **** 释放当前 PCB
+    // 手动 drop 任务以维护引用计数
     drop(task);
-    // we do not have to save task context
+    // 不需要保存任务上下文
     let mut _unused = TaskContext::zero_init();
     schedule(&mut _unused as *mut _);
 }
 
 lazy_static! {
-    /// Creation of initial process
+    /// 初始进程的创建。
     ///
-    /// the name "initproc" may be changed to any other app name like "usertests",
-    /// but we have user_shell, so we don't need to change it.
+    /// 名称 "initproc" 可更改为其他应用名如 "usertests"，
+    /// 但我们有 user_shell，无需更改。
     pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
         get_app_data_by_name("ch5b_initproc").unwrap()
     ));
 }
 
-///Add init process to the manager
+/// 添加初始进程到管理器。
 pub fn add_initproc() {
     add_task(INITPROC.clone());
 }

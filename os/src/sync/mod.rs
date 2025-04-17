@@ -1,4 +1,4 @@
-//! Synchronization and interior mutability primitives
+//! 同步与内部可变性原语。
 
 mod up;
 

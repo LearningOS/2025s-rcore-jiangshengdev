@@ -1,10 +1,10 @@
-//! The panic handler
+//! panic 处理器。
 
 use crate::sbi::shutdown;
 use core::panic::PanicInfo;
 
 #[panic_handler]
-/// panic handler
+/// panic 处理器。
 fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
         println!(

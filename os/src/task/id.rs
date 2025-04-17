@@ -1,7 +1,6 @@
-//! Task pid implementation.
+//! 任务 PID 实现。
 //!
-//! Assign PID to the process here. At the same time, the position of the application KernelStack
-//! is determined according to the PID.
+//! 在此为进程分配 PID，同时根据 PID 决定应用的内核栈位置。
 
 use crate::config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
 use crate::mm::{MapPermission, VirtAddr, KERNEL_SPACE};
@@ -47,7 +46,7 @@ lazy_static! {
         unsafe { UPSafeCell::new(RecycleAllocator::new()) };
 }
 
-/// Abstract structure of PID
+/// PID 的抽象结构。
 pub struct PidHandle(pub usize);
 
 impl Drop for PidHandle {
@@ -57,22 +56,22 @@ impl Drop for PidHandle {
     }
 }
 
-/// Allocate a new PID
+/// 分配一个新的 PID。
 pub fn pid_alloc() -> PidHandle {
     PidHandle(PID_ALLOCATOR.exclusive_access().alloc())
 }
 
-/// Return (bottom, top) of a kernel stack in kernel space.
+/// 返回内核空间中某应用内核栈的（底部，顶部）地址。
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     let top = TRAMPOLINE - app_id * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
     (bottom, top)
 }
 
-/// Kernel stack for a process(task)
+/// 进程（任务）的内核栈。
 pub struct KernelStack(pub usize);
 
-/// allocate a new kernel stack
+/// 分配一个新的内核栈。
 pub fn kstack_alloc() -> KernelStack {
     let kstack_id = KSTACK_ALLOCATOR.exclusive_access().alloc();
     let (kstack_bottom, kstack_top) = kernel_stack_position(kstack_id);
@@ -96,7 +95,7 @@ impl Drop for KernelStack {
 }
 
 impl KernelStack {
-    /// Push a variable of type T into the top of the KernelStack and return its raw pointer
+    /// 将类型为 T 的变量压入内核栈顶，并返回其裸指针。
     #[allow(unused)]
     pub fn push_on_top<T>(&self, value: T) -> *mut T
     where
@@ -109,7 +108,7 @@ impl KernelStack {
         }
         ptr_mut
     }
-    /// Get the top of the KernelStack
+    /// 获取内核栈顶地址。
     pub fn get_top(&self) -> usize {
         let (_, kernel_stack_top) = kernel_stack_position(self.0);
         kernel_stack_top

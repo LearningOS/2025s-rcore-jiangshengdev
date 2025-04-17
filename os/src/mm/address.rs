@@ -1,27 +1,30 @@
-//! Implementation of physical and virtual address and page number.
+//! 物理地址、虚拟地址与页号的实现。
 use super::PageTableEntry;
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 use core::fmt::{self, Debug, Formatter};
-/// physical address
+/// 物理地址宽度（SV39）。
 const PA_WIDTH_SV39: usize = 56;
+/// 虚拟地址宽度（SV39）。
 const VA_WIDTH_SV39: usize = 39;
+/// 物理页号宽度（SV39）。
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
+/// 虚拟页号宽度（SV39）。
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
-/// physical address
+/// 物理地址。
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysAddr(pub usize);
-/// virtual address
+/// 虚拟地址。
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtAddr(pub usize);
-/// physical page number
+/// 物理页号。
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PhysPageNum(pub usize);
-/// virtual page number
+/// 虚拟页号。
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VirtPageNum(pub usize);
 
-/// Debugging
+/// 调试实现
 
 impl Debug for VirtAddr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -92,24 +95,24 @@ impl From<VirtPageNum> for usize {
         v.0
     }
 }
-/// virtual address impl
+/// 虚拟地址相关实现
 impl VirtAddr {
-    /// Get the (floor) virtual page number
+    /// 获取（向下取整的）虚拟页号。
     pub fn floor(&self) -> VirtPageNum {
         VirtPageNum(self.0 / PAGE_SIZE)
     }
 
-    /// Get the (ceil) virtual page number
+    /// 获取（向上取整的）虚拟页号。
     pub fn ceil(&self) -> VirtPageNum {
         VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
 
-    /// Get the page offset of virtual address
+    /// 获取虚拟地址的页内偏移。
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
 
-    /// Check if the virtual address is aligned by page size
+    /// 检查虚拟地址是否按页对齐。
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
@@ -126,19 +129,19 @@ impl From<VirtPageNum> for VirtAddr {
     }
 }
 impl PhysAddr {
-    /// Get the (floor) physical page number
+    /// 获取（向下取整的）物理页号。
     pub fn floor(&self) -> PhysPageNum {
         PhysPageNum(self.0 / PAGE_SIZE)
     }
-    /// Get the (ceil) physical page number
+    /// 获取（向上取整的）物理页号。
     pub fn ceil(&self) -> PhysPageNum {
         PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
-    /// Get the page offset of physical address
+    /// 获取物理地址的页内偏移。
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
-    /// Check if the physical address is aligned by page size
+    /// 检查物理地址是否按页对齐。
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
@@ -156,7 +159,7 @@ impl From<PhysPageNum> for PhysAddr {
 }
 
 impl VirtPageNum {
-    /// Get the indexes of the page table entry
+    /// 获取页表项的三级索引。
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut idx = [0usize; 3];
@@ -169,33 +172,32 @@ impl VirtPageNum {
 }
 
 impl PhysAddr {
-    ///Get mutable reference to `PhysAddr` value
-    /// Get the mutable reference of physical address
+    /// 获取指向 `PhysAddr` 的可变引用。
     pub fn get_mut<T>(&self) -> &'static mut T {
         unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
 }
 impl PhysPageNum {
-    /// Get the reference of page table(array of ptes)
+    /// 获取页表（PageTableEntry 数组）的可变引用。
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = (*self).into();
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512) }
     }
-    /// Get the reference of page(array of bytes)
+    /// 获取页（字节数组）的可变引用。
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
-    /// Get the mutable reference of physical address
+    /// 获取物理地址的可变引用。
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
         pa.get_mut()
     }
 }
 
-/// iterator for phy/virt page number
+/// 物理/虚拟页号的迭代器。
 pub trait StepByOne {
-    /// step by one element(page number)
+    /// 步进一个元素（页号）。
     fn step(&mut self);
 }
 impl StepByOne for VirtPageNum {
@@ -205,7 +207,7 @@ impl StepByOne for VirtPageNum {
 }
 
 #[derive(Copy, Clone)]
-/// a simple range structure for type T
+/// 泛型简单区间结构体。
 pub struct SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
@@ -238,7 +240,7 @@ where
         SimpleRangeIterator::new(self.l, self.r)
     }
 }
-/// iterator for the simple range structure
+/// 简单区间结构体的迭代器。
 pub struct SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
@@ -269,5 +271,5 @@ where
         }
     }
 }
-/// a simple range structure for virtual page number
+/// 虚拟页号的简单区间类型。
 pub type VPNRange = SimpleRange<VirtPageNum>;

@@ -1,8 +1,8 @@
-//! Global logger
+//! 全局日志器。
 
 use log::{Level, LevelFilter, Log, Metadata, Record};
 
-/// a simple logger
+/// 简单日志器。
 struct SimpleLogger;
 
 impl Log for SimpleLogger {
@@ -14,11 +14,11 @@ impl Log for SimpleLogger {
             return;
         }
         let color = match record.level() {
-            Level::Error => 31, // Red
-            Level::Warn => 93,  // BrightYellow
-            Level::Info => 34,  // Blue
-            Level::Debug => 32, // Green
-            Level::Trace => 90, // BrightBlack
+            Level::Error => 31, // 红色
+            Level::Warn => 93,  // 亮黄色
+            Level::Info => 34,  // 蓝色
+            Level::Debug => 32, // 绿色
+            Level::Trace => 90, // 亮黑色
         };
         println!(
             "\u{1B}[{}m[{:>5}] {}\u{1B}[0m",
@@ -30,7 +30,7 @@ impl Log for SimpleLogger {
     fn flush(&self) {}
 }
 
-/// initiate logger
+/// 初始化日志器。
 pub fn init() {
     static LOGGER: SimpleLogger = SimpleLogger;
     log::set_logger(&LOGGER).unwrap();

@@ -1,4 +1,4 @@
-//! File and filesystem-related syscalls
+//! 文件与文件系统相关的系统调用。
 use crate::mm::translated_byte_buffer;
 use crate::sbi::console_getchar;
 use crate::task::{current_task, current_user_token, suspend_current_and_run_next};
@@ -6,7 +6,7 @@ use crate::task::{current_task, current_user_token, suspend_current_and_run_next
 const FD_STDIN: usize = 0;
 const FD_STDOUT: usize = 1;
 
-/// write buf of length `len`  to a file with `fd`
+/// 将长度为 `len` 的缓冲区写入文件描述符 `fd`。
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     trace!("kernel:pid[{}] sys_write", current_task().unwrap().pid.0);
     match fd {
@@ -23,11 +23,12 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     }
 }
 
+/// 从文件描述符 `fd` 读取长度为 `len` 的数据到缓冲区。
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     trace!("kernel:pid[{}] sys_read", current_task().unwrap().pid.0);
     match fd {
         FD_STDIN => {
-            assert_eq!(len, 1, "Only support len = 1 in sys_read!");
+            assert_eq!(len, 1, "只支持 len = 1 的 sys_read 调用！");
             let mut c: usize;
             loop {
                 c = console_getchar();
@@ -46,7 +47,7 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
             1
         }
         _ => {
-            panic!("Unsupported fd in sys_read!");
+            panic!("不支持的文件描述符！");
         }
     }
 }

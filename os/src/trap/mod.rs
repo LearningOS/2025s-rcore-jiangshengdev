@@ -1,16 +1,10 @@
-//! Trap handling functionality
+//! trap 处理相关功能。
 //!
-//! For rCore, we have a single trap entry point, namely `__alltraps`. At
-//! initialization in [`init()`], we set the `stvec` CSR to point to it.
+//! 对于 rCore，只有一个 trap 入口，即 `__alltraps`。在 [`init()`] 初始化时，将 `stvec` CSR 设置为该入口。
 //!
-//! All traps go through `__alltraps`, which is defined in `trap.S`. The
-//! assembly language code does just enough work restore the kernel space
-//! context, ensuring that Rust code safely runs, and transfers control to
-//! [`trap_handler()`].
+//! 所有 trap 都经过 `__alltraps`，其定义在 `trap.S`。汇编代码仅做必要的上下文恢复，确保 Rust 代码安全运行，并将控制权转交给 [`trap_handler()`]。
 //!
-//! It then calls different functionality based on what exactly the exception
-//! was. For example, timer interrupts trigger task preemption, and syscalls go
-//! to [`syscall()`].
+//! 随后根据异常类型调用不同功能。例如，定时器中断触发任务抢占，系统调用则进入 [`syscall()`]。
 
 mod context;
 
@@ -29,7 +23,7 @@ use riscv::register::{
 
 global_asm!(include_str!("trap.S"));
 
-/// Initialize trap handling
+/// 初始化 trap 处理。
 pub fn init() {
     set_kernel_trap_entry();
 }
@@ -46,14 +40,14 @@ fn set_user_trap_entry() {
     }
 }
 
-/// enable timer interrupt in supervisor mode
+/// 使能管态定时器中断。
 pub fn enable_timer_interrupt() {
     unsafe {
         sie::set_stimer();
     }
 }
 
-/// trap handler
+/// trap 处理函数。
 #[no_mangle]
 pub fn trap_handler() -> ! {
     set_kernel_trap_entry();
@@ -62,12 +56,12 @@ pub fn trap_handler() -> ! {
     // trace!("into {:?}", scause.cause());
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
-            // jump to next instruction anyway
+            // 无论如何跳到下一条指令
             let mut cx = current_trap_cx();
             cx.sepc += 4;
-            // get system call return value
+            // 获取系统调用返回值
             let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]);
-            // cx is changed during sys_exec, so we have to call it again
+            // sys_exec 可能改变 cx，需重新获取
             cx = current_trap_cx();
             cx.x[10] = result as usize;
         }
@@ -83,12 +77,12 @@ pub fn trap_handler() -> ! {
                 stval,
                 current_trap_cx().sepc,
             );
-            // page fault exit code
+            // 页错误退出码
             exit_current_and_run_next(-2);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            // illegal instruction exit code
+            // 非法指令退出码
             exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
@@ -108,10 +102,10 @@ pub fn trap_handler() -> ! {
 }
 
 #[no_mangle]
-/// return to user space
-/// set the new addr of __restore asm function in TRAMPOLINE page,
-/// set the reg a0 = trap_cx_ptr, reg a1 = phy addr of usr page table,
-/// finally, jump to new addr of __restore asm function
+/// 返回用户态。
+/// 设置 TRAMPOLINE 页中 __restore 汇编函数的新地址，
+/// 设置寄存器 a0 = trap_cx_ptr，a1 = 用户页表物理地址，
+/// 最后跳转到 __restore 汇编函数的新地址。
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_cx_ptr = TRAP_CONTEXT_BASE;
@@ -125,19 +119,19 @@ pub fn trap_return() -> ! {
     unsafe {
         asm!(
             "fence.i",
-            "jr {restore_va}",         // jump to new addr of __restore asm function
+            "jr {restore_va}",         // 跳转到 __restore 汇编函数新地址
             restore_va = in(reg) restore_va,
-            in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
-            in("a1") user_satp,        // a1 = phy addr of usr page table
+            in("a0") trap_cx_ptr,      // a0 = Trap Context 虚拟地址
+            in("a1") user_satp,        // a1 = 用户页表物理地址
             options(noreturn)
         )
     }
 }
 
 #[no_mangle]
-/// handle trap from kernel
-/// Unimplement: traps/interrupts/exceptions from kernel mode
-/// Todo: Chapter 9: I/O device
+/// 处理来自内核的 trap。
+/// 未实现：来自内核态的 trap/中断/异常。
+/// Todo: 第九章 I/O 设备。
 pub fn trap_from_kernel() -> ! {
     use riscv::register::sepc;
     trace!("stval = {:#x}, sepc = {:#x}", stval::read(), sepc::read());
