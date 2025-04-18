@@ -24,6 +24,7 @@ impl TrapContext {
     pub fn set_sp(&mut self, sp: usize) {
         self.x[2] = sp;
     }
+
     /// 初始化应用的 trap 上下文。
     pub fn app_init_context(
         entry: usize,

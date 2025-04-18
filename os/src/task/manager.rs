@@ -24,10 +24,12 @@ impl TaskManager {
             ready_queue: VecDeque::new(),
         }
     }
+
     /// 将进程加入就绪队列。
     pub fn add(&mut self, task: Arc<TaskControlBlock>) {
         self.ready_queue.push_back(task);
     }
+
     /// 从就绪队列取出一个进程。
     pub fn fetch(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.ready_queue.pop_front()

@@ -34,30 +34,37 @@ impl PageTableEntry {
             bits: ppn.0 << 10 | flags.bits as usize,
         }
     }
+
     /// 创建一个空页表项。
     pub fn empty() -> Self {
         PageTableEntry { bits: 0 }
     }
+
     /// 从页表项中获取物理页号。
     pub fn ppn(&self) -> PhysPageNum {
         (self.bits >> 10 & ((1usize << 44) - 1)).into()
     }
+
     /// 从页表项中获取标志位。
     pub fn flags(&self) -> PTEFlags {
         PTEFlags::from_bits(self.bits as u8).unwrap()
     }
+
     /// 页表项指向的页是否有效？
     pub fn is_valid(&self) -> bool {
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
+
     /// 页表项指向的页是否可读？
     pub fn readable(&self) -> bool {
         (self.flags() & PTEFlags::R) != PTEFlags::empty()
     }
+
     /// 页表项指向的页是否可写？
     pub fn writable(&self) -> bool {
         (self.flags() & PTEFlags::W) != PTEFlags::empty()
     }
+
     /// 页表项指向的页是否可执行？
     pub fn executable(&self) -> bool {
         (self.flags() & PTEFlags::X) != PTEFlags::empty()
@@ -80,6 +87,7 @@ impl PageTable {
             frames: vec![frame],
         }
     }
+
     /// 临时用于从用户空间获取参数。
     pub fn from_token(satp: usize) -> Self {
         Self {
@@ -87,6 +95,7 @@ impl PageTable {
             frames: Vec::new(),
         }
     }
+
     /// 通过虚拟页号查找页表项，不存在则为 4KB 页表分配帧。
     fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
@@ -112,6 +121,7 @@ impl PageTable {
 
         result
     }
+
     /// 通过虚拟页号查找页表项。
     fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
@@ -135,6 +145,7 @@ impl PageTable {
 
         result
     }
+
     /// 设置虚拟页号与物理页号的映射关系。
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
@@ -142,6 +153,7 @@ impl PageTable {
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
+
     /// 移除虚拟页号与物理页号的映射关系。
     #[allow(unused)]
     pub fn unmap(&mut self, vpn: VirtPageNum) {
@@ -149,10 +161,12 @@ impl PageTable {
         assert!(pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }
+
     /// 通过虚拟页号获取页表项。
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
+
     /// 通过虚拟地址获取物理地址。
     pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.clone().floor()).map(|pte| {
@@ -164,6 +178,7 @@ impl PageTable {
             (aligned_pa_usize + offset).into()
         })
     }
+
     /// 获取页表的 token。
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0

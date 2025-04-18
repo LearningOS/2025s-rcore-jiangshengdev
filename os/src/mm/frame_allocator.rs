@@ -71,6 +71,7 @@ impl FrameAllocator for StackFrameAllocator {
             recycled: Vec::new(),
         }
     }
+
     fn alloc(&mut self) -> Option<PhysPageNum> {
         if let Some(ppn) = self.recycled.pop() {
             Some(ppn.into())
@@ -81,6 +82,7 @@ impl FrameAllocator for StackFrameAllocator {
             Some((self.current - 1).into())
         }
     }
+
     fn dealloc(&mut self, ppn: PhysPageNum) {
         let ppn = ppn.0;
         // 有效性检查。

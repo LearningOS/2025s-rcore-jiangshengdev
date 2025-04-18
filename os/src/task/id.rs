@@ -20,6 +20,7 @@ impl RecycleAllocator {
             recycled: Vec::new(),
         }
     }
+
     pub fn alloc(&mut self) -> usize {
         if let Some(id) = self.recycled.pop() {
             id
@@ -28,6 +29,7 @@ impl RecycleAllocator {
             self.current - 1
         }
     }
+
     pub fn dealloc(&mut self, id: usize) {
         assert!(id < self.current);
         assert!(
@@ -110,6 +112,7 @@ impl KernelStack {
 
         ptr_mut
     }
+
     /// 获取内核栈顶地址。
     pub fn get_top(&self) -> usize {
         let (_, kernel_stack_top) = kernel_stack_position(self.0);

@@ -45,10 +45,12 @@ impl MemorySet {
             areas: Vec::new(),
         }
     }
+
     /// 获取页表 token。
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
+
     /// 假定无冲突，插入带帧的区域。
     pub fn insert_framed_area(
         &mut self,
@@ -61,6 +63,7 @@ impl MemorySet {
             None,
         );
     }
+
     /// 移除以指定虚拟页号起始的区域。
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self
@@ -73,6 +76,7 @@ impl MemorySet {
             self.areas.remove(idx);
         }
     }
+
     /// 向该 MemorySet 添加一个新的 MapArea。
     /// 假定虚拟地址空间无冲突。
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
@@ -84,6 +88,7 @@ impl MemorySet {
 
         self.areas.push(map_area);
     }
+
     /// 注意 trampoline 不在 areas 中收集。
     fn map_trampoline(&mut self) {
         self.page_table.map(
@@ -92,6 +97,7 @@ impl MemorySet {
             PTEFlags::R | PTEFlags::X,
         );
     }
+
     /// 不包含内核栈。
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
@@ -157,6 +163,7 @@ impl MemorySet {
         );
         memory_set
     }
+
     /// 包含 elf 各段、trampoline、TrapContext 和用户栈，同时返回用户栈顶和入口点。
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
@@ -240,6 +247,7 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+
     /// 通过拷贝已退出进程的地址空间代码和数据创建新地址空间。
     pub fn from_existed_user(user_space: &Self) -> Self {
         let mut memory_set = Self::new_bare();
@@ -261,6 +269,7 @@ impl MemorySet {
 
         memory_set
     }
+
     /// 通过写 satp CSR 寄存器切换页表。
     pub fn activate(&self) {
         let satp = self.page_table.token();
@@ -270,6 +279,7 @@ impl MemorySet {
             asm!("sfence.vma");
         }
     }
+
     /// 虚拟页号转页表项。
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
@@ -335,6 +345,7 @@ impl MapArea {
             map_perm,
         }
     }
+
     pub fn from_another(another: &Self) -> Self {
         Self {
             vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
@@ -343,6 +354,7 @@ impl MapArea {
             map_perm: another.map_perm,
         }
     }
+
     pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         let ppn: PhysPageNum;
 
@@ -360,6 +372,7 @@ impl MapArea {
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
         page_table.map(vpn, ppn, pte_flags);
     }
+
     pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         if self.map_type == MapType::Framed {
             self.data_frames.remove(&vpn);
@@ -367,16 +380,19 @@ impl MapArea {
 
         page_table.unmap(vpn);
     }
+
     pub fn map(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.map_one(page_table, vpn);
         }
     }
+
     pub fn unmap(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.unmap_one(page_table, vpn);
         }
     }
+
     #[allow(unused)]
     pub fn shrink_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
         for vpn in VPNRange::new(new_end, self.vpn_range.get_end()) {
@@ -385,6 +401,7 @@ impl MapArea {
 
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
+
     #[allow(unused)]
     pub fn append_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
         for vpn in VPNRange::new(self.vpn_range.get_end(), new_end) {
@@ -393,6 +410,7 @@ impl MapArea {
 
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
+
     /// 数据：起始对齐但可能长度较短。
     /// 假定所有帧已清空。
     pub fn copy_data(&mut self, page_table: &mut PageTable, data: &[u8]) {

@@ -154,14 +154,17 @@ impl PhysAddr {
     pub fn floor(&self) -> PhysPageNum {
         PhysPageNum(self.0 / PAGE_SIZE)
     }
+
     /// 获取（向上取整的）物理页号。
     pub fn ceil(&self) -> PhysPageNum {
         PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
+
     /// 获取物理地址的页内偏移。
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
+
     /// 检查物理地址是否按页对齐。
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
@@ -210,12 +213,14 @@ impl PhysPageNum {
 
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512) }
     }
+
     /// 获取页（字节数组）的可变引用。
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
 
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
+
     /// 获取物理地址的可变引用。
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
@@ -253,9 +258,11 @@ where
         assert!(start <= end, "start {:?} > end {:?}!", start, end);
         Self { l: start, r: end }
     }
+
     pub fn get_start(&self) -> T {
         self.l
     }
+
     pub fn get_end(&self) -> T {
         self.r
     }
@@ -266,7 +273,9 @@ where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
     type Item = T;
+
     type IntoIter = SimpleRangeIterator<T>;
+
     fn into_iter(self) -> Self::IntoIter {
         SimpleRangeIterator::new(self.l, self.r)
     }
@@ -295,6 +304,7 @@ where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
     type Item = T;
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.current == self.end {
             None

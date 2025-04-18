@@ -21,6 +21,7 @@ impl<T> UPSafeCell<T> {
             inner: RefCell::new(value),
         }
     }
+
     /// 若数据已被借用则 panic。
     pub fn exclusive_access(&self) -> RefMut<'_, T> {
         self.inner.borrow_mut()

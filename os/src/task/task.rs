@@ -29,6 +29,7 @@ impl TaskControlBlock {
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
+
     /// 获取应用页表的地址
     pub fn get_user_token(&self) -> usize {
         let inner = self.inner_exclusive_access();
@@ -74,14 +75,17 @@ impl TaskControlBlockInner {
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
     }
+
     /// 获取用户 token
     pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
+
     /// 获取任务状态
     fn get_status(&self) -> TaskStatus {
         self.task_status
     }
+
     /// 判断是否为僵尸进程
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
