@@ -7,6 +7,7 @@ pub fn get_num_app() -> usize {
     extern "C" {
         fn _num_app();
     }
+
     unsafe { (_num_app as usize as *const usize).read_volatile() }
 }
 /// 获取指定应用的数据。
@@ -18,6 +19,7 @@ pub fn get_app_data(app_id: usize) -> &'static [u8] {
     let num_app = get_num_app();
     let app_start = unsafe { core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1) };
     assert!(app_id < num_app);
+
     unsafe {
         core::slice::from_raw_parts(
             app_start[app_id] as *const u8,
@@ -62,8 +64,10 @@ pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
 /// 列出所有应用。
 pub fn list_apps() {
     println!("/**** APPS ****");
+
     for app in APP_NAMES.iter() {
         println!("{}", app);
     }
+
     println!("**************/");
 }

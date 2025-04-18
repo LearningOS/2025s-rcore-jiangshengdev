@@ -57,6 +57,7 @@ pub fn sys_exec(path: *const u8) -> isize {
     trace!("kernel:pid[{}] sys_exec", current_task().unwrap().pid.0);
     let token = current_user_token();
     let path = translated_str(token, path);
+
     if let Some(data) = get_app_data_by_name(path.as_str()) {
         let task = current_task().unwrap();
         task.exec(data);
@@ -78,6 +79,7 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
 
     // ---- 独占访问当前 PCB
     let mut inner = task.inner_exclusive_access();
+
     if !inner
         .children
         .iter()
@@ -86,11 +88,13 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
         return -1;
         // ---- 释放当前 PCB
     }
+
     let pair = inner.children.iter().enumerate().find(|(_, p)| {
         // ++++ 临时独占访问子 PCB
         p.inner_exclusive_access().is_zombie() && (pid == -1 || pid as usize == p.getpid())
         // ++++ 释放子 PCB
     });
+
     if let Some((idx, _)) = pair {
         let child = inner.children.remove(idx);
         // 确认 child 被移出后会被释放
@@ -139,6 +143,7 @@ pub fn sys_munmap(_start: usize, _len: usize) -> isize {
 /// 改变数据段大小。
 pub fn sys_sbrk(size: i32) -> isize {
     trace!("kernel:pid[{}] sys_sbrk", current_task().unwrap().pid.0);
+
     if let Some(old_brk) = current_task().unwrap().change_program_brk(size) {
         old_brk as isize
     } else {

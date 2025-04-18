@@ -218,9 +218,11 @@ impl TaskControlBlock {
         let heap_bottom = inner.heap_bottom;
         let old_break = inner.program_brk;
         let new_brk = inner.program_brk as isize + size as isize;
+
         if new_brk < heap_bottom as isize {
             return None;
         }
+
         let result = if size < 0 {
             inner
                 .memory_set
@@ -230,6 +232,7 @@ impl TaskControlBlock {
                 .memory_set
                 .append_to(VirtAddr(heap_bottom), VirtAddr(new_brk as usize))
         };
+
         if result {
             inner.program_brk = new_brk as usize;
             Some(old_break)

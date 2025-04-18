@@ -92,19 +92,24 @@ impl PageTable {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
+
         for (i, idx) in idxs.iter().enumerate() {
             let pte = &mut ppn.get_pte_array()[*idx];
+
             if i == 2 {
                 result = Some(pte);
                 break;
             }
+
             if !pte.is_valid() {
                 let frame = frame_alloc().unwrap();
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
                 self.frames.push(frame);
             }
+
             ppn = pte.ppn();
         }
+
         result
     }
     /// 通过虚拟页号查找页表项。
@@ -112,17 +117,22 @@ impl PageTable {
         let idxs = vpn.indexes();
         let mut ppn = self.root_ppn;
         let mut result: Option<&mut PageTableEntry> = None;
+
         for (i, idx) in idxs.iter().enumerate() {
             let pte = &mut ppn.get_pte_array()[*idx];
+
             if i == 2 {
                 result = Some(pte);
                 break;
             }
+
             if !pte.is_valid() {
                 return None;
             }
+
             ppn = pte.ppn();
         }
+
         result
     }
     /// 设置虚拟页号与物理页号的映射关系。
@@ -166,6 +176,7 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
     let mut start = ptr as usize;
     let end = start + len;
     let mut v = Vec::new();
+
     while start < end {
         let start_va = VirtAddr::from(start);
         let mut vpn = start_va.floor();
@@ -173,13 +184,16 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
         vpn.step();
         let mut end_va: VirtAddr = vpn.into();
         end_va = end_va.min(VirtAddr::from(end));
+
         if end_va.page_offset() == 0 {
             v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..]);
         } else {
             v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..end_va.page_offset()]);
         }
+
         start = end_va.into();
     }
+
     v
 }
 
@@ -188,11 +202,13 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
     let page_table = PageTable::from_token(token);
     let mut string = String::new();
     let mut va = ptr as usize;
+
     loop {
         let ch: u8 = *(page_table
             .translate_va(VirtAddr::from(va))
             .unwrap()
             .get_mut());
+
         if ch == 0 {
             break;
         } else {
@@ -200,6 +216,7 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
             va += 1;
         }
     }
+
     string
 }
 /// 通过页表将 ptr[u8] 数组转换为 T 的可变引用。

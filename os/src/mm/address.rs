@@ -163,10 +163,12 @@ impl VirtPageNum {
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut idx = [0usize; 3];
+
         for i in (0..3).rev() {
             idx[i] = vpn & 511;
             vpn >>= 9;
         }
+
         idx
     }
 }
@@ -181,11 +183,13 @@ impl PhysPageNum {
     /// 获取页表（PageTableEntry 数组）的可变引用。
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = (*self).into();
+
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512) }
     }
     /// 获取页（字节数组）的可变引用。
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
+
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
     /// 获取物理地址的可变引用。

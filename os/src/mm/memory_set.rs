@@ -76,9 +76,11 @@ impl MemorySet {
     /// 假定虚拟地址空间无冲突。
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
+
         if let Some(data) = data {
             map_area.copy_data(&mut self.page_table, data);
         }
+
         self.areas.push(map_area);
     }
     /// 注意 trampoline 不在 areas 中收集。
@@ -166,22 +168,28 @@ impl MemorySet {
         assert_eq!(magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
         let ph_count = elf_header.pt2.ph_count();
         let mut max_end_vpn = VirtPageNum(0);
+
         for i in 0..ph_count {
             let ph = elf.program_header(i).unwrap();
+
             if ph.get_type().unwrap() == xmas_elf::program::Type::Load {
                 let start_va: VirtAddr = (ph.virtual_addr() as usize).into();
                 let end_va: VirtAddr = ((ph.virtual_addr() + ph.mem_size()) as usize).into();
                 let mut map_perm = MapPermission::U;
                 let ph_flags = ph.flags();
+
                 if ph_flags.is_read() {
                     map_perm |= MapPermission::R;
                 }
+
                 if ph_flags.is_write() {
                     map_perm |= MapPermission::W;
                 }
+
                 if ph_flags.is_execute() {
                     map_perm |= MapPermission::X;
                 }
+
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
                 memory_set.push(
@@ -249,11 +257,13 @@ impl MemorySet {
                     .copy_from_slice(src_ppn.get_bytes_array());
             }
         }
+
         memory_set
     }
     /// 通过写 satp CSR 寄存器切换页表。
     pub fn activate(&self) {
         let satp = self.page_table.token();
+
         unsafe {
             satp::write(satp);
             asm!("sfence.vma");
@@ -333,6 +343,7 @@ impl MapArea {
     }
     pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         let ppn: PhysPageNum;
+
         match self.map_type {
             MapType::Identical => {
                 ppn = PhysPageNum(vpn.0);
@@ -343,6 +354,7 @@ impl MapArea {
                 self.data_frames.insert(vpn, frame);
             }
         }
+
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
         page_table.map(vpn, ppn, pte_flags);
     }
@@ -350,6 +362,7 @@ impl MapArea {
         if self.map_type == MapType::Framed {
             self.data_frames.remove(&vpn);
         }
+
         page_table.unmap(vpn);
     }
     pub fn map(&mut self, page_table: &mut PageTable) {
@@ -367,6 +380,7 @@ impl MapArea {
         for vpn in VPNRange::new(new_end, self.vpn_range.get_end()) {
             self.unmap_one(page_table, vpn)
         }
+
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
     #[allow(unused)]
@@ -374,6 +388,7 @@ impl MapArea {
         for vpn in VPNRange::new(self.vpn_range.get_end(), new_end) {
             self.map_one(page_table, vpn)
         }
+
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
     /// 数据：起始对齐但可能长度较短。
@@ -383,6 +398,7 @@ impl MapArea {
         let mut start: usize = 0;
         let mut current_vpn = self.vpn_range.get_start();
         let len = data.len();
+
         loop {
             let src = &data[start..len.min(start + PAGE_SIZE)];
             let dst = &mut page_table
@@ -392,9 +408,11 @@ impl MapArea {
                 .get_bytes_array()[..src.len()];
             dst.copy_from_slice(src);
             start += PAGE_SIZE;
+
             if start >= len {
                 break;
             }
+
             current_vpn.step();
         }
     }

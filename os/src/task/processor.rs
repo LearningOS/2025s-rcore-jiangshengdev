@@ -60,6 +60,7 @@ lazy_static! {
 pub fn run_tasks() {
     loop {
         let mut processor = PROCESSOR.exclusive_access();
+
         if let Some(task) = fetch_task() {
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
             // 独占访问即将运行的任务 TCB
@@ -72,6 +73,7 @@ pub fn run_tasks() {
             processor.current = Some(task);
             // 手动释放 processor
             drop(processor);
+
             unsafe {
                 __switch(idle_task_cx_ptr, next_task_cx_ptr);
             }
@@ -110,6 +112,7 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = PROCESSOR.exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
+
     unsafe {
         __switch(switched_task_cx_ptr, idle_task_cx_ptr);
     }

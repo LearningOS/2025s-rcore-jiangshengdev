@@ -13,6 +13,7 @@ impl Log for SimpleLogger {
         if !self.enabled(record.metadata()) {
             return;
         }
+
         let color = match record.level() {
             Level::Error => 31, // 红色
             Level::Warn => 93,  // 亮黄色

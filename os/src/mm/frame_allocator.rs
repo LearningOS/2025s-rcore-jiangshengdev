@@ -17,9 +17,11 @@ impl FrameTracker {
     pub fn new(ppn: PhysPageNum) -> Self {
         // 页清零。
         let bytes_array = ppn.get_bytes_array();
+
         for i in bytes_array {
             *i = 0;
         }
+
         Self { ppn }
     }
 }
@@ -123,17 +125,21 @@ pub fn frame_dealloc(ppn: PhysPageNum) {
 /// 帧分配器的简单测试。
 pub fn frame_allocator_test() {
     let mut v: Vec<FrameTracker> = Vec::new();
+
     for i in 0..5 {
         let frame = frame_alloc().unwrap();
         println!("{:?}", frame);
         v.push(frame);
     }
+
     v.clear();
+
     for i in 0..5 {
         let frame = frame_alloc().unwrap();
         println!("{:?}", frame);
         v.push(frame);
     }
+
     drop(v);
     println!("frame_allocator_test passed!");
 }

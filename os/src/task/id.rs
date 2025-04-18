@@ -103,9 +103,11 @@ impl KernelStack {
     {
         let kernel_stack_top = self.get_top();
         let ptr_mut = (kernel_stack_top - core::mem::size_of::<T>()) as *mut T;
+
         unsafe {
             *ptr_mut = value;
         }
+
         ptr_mut
     }
     /// 获取内核栈顶地址。

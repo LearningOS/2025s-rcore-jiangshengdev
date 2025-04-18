@@ -60,6 +60,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     let task = take_current_task().unwrap();
 
     let pid = task.getpid();
+
     if pid == IDLE_PID {
         println!(
             "[kernel] Idle process exit with exit_code {} ...",
@@ -79,6 +80,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     // ++++++ 独占访问 initproc TCB
     {
         let mut initproc_inner = INITPROC.inner_exclusive_access();
+
         for child in inner.children.iter() {
             child.inner_exclusive_access().parent = Some(Arc::downgrade(&INITPROC));
             initproc_inner.children.push(child.clone());
