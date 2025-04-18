@@ -46,6 +46,7 @@ trait FrameAllocator {
     /// 回收一个物理页号。
     fn dealloc(&mut self, ppn: PhysPageNum);
 }
+
 /// 栈式物理页帧分配器实现。
 pub struct StackFrameAllocator {
     current: usize,
@@ -61,6 +62,7 @@ impl StackFrameAllocator {
         // trace!("last {} Physical Frames.", self.end - self.current);
     }
 }
+
 impl FrameAllocator for StackFrameAllocator {
     fn new() -> Self {
         Self {
@@ -97,6 +99,7 @@ lazy_static! {
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
         unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
+
 /// 使用 `ekernel` 和 `MEMORY_END` 初始化帧分配器。
 pub fn init_frame_allocator() {
     extern "C" {

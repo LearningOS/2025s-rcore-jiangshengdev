@@ -3,10 +3,13 @@
 use crate::config::CLOCK_FREQ;
 use crate::sbi::set_timer;
 use riscv::register::time;
+
 /// 每秒时钟中断次数
 const TICKS_PER_SEC: usize = 100;
+
 /// 每秒的毫秒数
 const MSEC_PER_SEC: usize = 1000;
+
 /// 每秒的微秒数
 #[allow(dead_code)]
 const MICRO_PER_SEC: usize = 1_000_000;

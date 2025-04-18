@@ -3,6 +3,7 @@
 /// 获取应用数量。
 use alloc::vec::Vec;
 use lazy_static::*;
+
 pub fn get_num_app() -> usize {
     extern "C" {
         fn _num_app();
@@ -10,6 +11,7 @@ pub fn get_num_app() -> usize {
 
     unsafe { (_num_app as usize as *const usize).read_volatile() }
 }
+
 /// 获取指定应用的数据。
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
     extern "C" {
@@ -61,6 +63,7 @@ pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
         .find(|&i| APP_NAMES[i] == name)
         .map(get_app_data)
 }
+
 /// 列出所有应用。
 pub fn list_apps() {
     println!("/**** APPS ****");

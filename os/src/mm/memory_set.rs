@@ -30,6 +30,7 @@ lazy_static! {
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
+
 /// 地址空间。
 pub struct MemorySet {
     page_table: PageTable,
@@ -309,6 +310,7 @@ impl MemorySet {
         }
     }
 }
+
 /// 区域映射结构，管理一段连续虚拟内存。
 pub struct MapArea {
     vpn_range: VPNRange,

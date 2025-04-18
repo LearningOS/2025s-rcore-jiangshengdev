@@ -4,6 +4,7 @@ use crate::sbi::console_getchar;
 use crate::task::{current_task, current_user_token, suspend_current_and_run_next};
 
 const FD_STDIN: usize = 0;
+
 const FD_STDOUT: usize = 1;
 
 /// 将长度为 `len` 的缓冲区写入文件描述符 `fd`。

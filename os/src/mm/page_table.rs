@@ -219,6 +219,7 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
 
     string
 }
+
 /// 通过页表将 ptr[u8] 数组转换为 T 的可变引用。
 pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
     //trace!("into translated_refmut!");
