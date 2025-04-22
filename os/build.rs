@@ -39,6 +39,7 @@ _num_app:
     for i in 0..apps.len() {
         writeln!(f, r#"    .quad app_{}_start"#, i)?;
     }
+
     writeln!(f, r#"    .quad app_{}_end"#, apps.len() - 1)?;
 
     writeln!(
@@ -47,6 +48,7 @@ _num_app:
     .global _app_names
 _app_names:"#
     )?;
+
     for app in apps.iter() {
         writeln!(f, r#"    .string "{}""#, app)?;
     }
@@ -66,5 +68,6 @@ app_{0}_end:"#,
             idx, app, TARGET_PATH
         )?;
     }
+
     Ok(())
 }
