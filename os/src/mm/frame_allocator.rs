@@ -41,8 +41,10 @@ impl Drop for FrameTracker {
 trait FrameAllocator {
     /// 创建分配器实例。
     fn new() -> Self;
+
     /// 分配一个物理页号。
     fn alloc(&mut self) -> Option<PhysPageNum>;
+
     /// 回收一个物理页号。
     fn dealloc(&mut self, ppn: PhysPageNum);
 }
