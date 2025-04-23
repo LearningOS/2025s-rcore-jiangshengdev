@@ -54,6 +54,13 @@ use fs::*;
 use process::*;
 
 /// 处理带有 `syscall_id` 及参数的系统调用异常。
+///
+/// # 参数
+/// * `syscall_id` - 系统调用号。
+/// * `args` - 系统调用参数数组。
+///
+/// # 返回值
+/// 系统调用的返回值。
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),

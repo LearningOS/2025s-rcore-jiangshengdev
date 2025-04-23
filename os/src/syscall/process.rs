@@ -18,6 +18,9 @@ pub struct TimeVal {
 }
 
 /// 任务退出并提交退出码。
+///
+/// # 参数
+/// * `exit_code` - 进程退出码。
 pub fn sys_exit(exit_code: i32) -> ! {
     trace!("kernel:pid[{}] sys_exit", current_task().unwrap().pid.0);
     exit_current_and_run_next(exit_code);
@@ -25,6 +28,9 @@ pub fn sys_exit(exit_code: i32) -> ! {
 }
 
 /// 当前任务让出资源给其他任务。
+///
+/// # 返回值
+/// 总是返回 0。
 pub fn sys_yield() -> isize {
     trace!("kernel:pid[{}] sys_yield", current_task().unwrap().pid.0);
     suspend_current_and_run_next();
@@ -32,12 +38,18 @@ pub fn sys_yield() -> isize {
 }
 
 /// 获取当前任务的 pid。
+///
+/// # 返回值
+/// 当前任务的 pid。
 pub fn sys_getpid() -> isize {
     trace!("kernel: sys_getpid pid:{}", current_task().unwrap().pid.0);
     current_task().unwrap().pid.0 as isize
 }
 
 /// 创建子进程。
+///
+/// # 返回值
+/// 新建子进程的 pid。
 pub fn sys_fork() -> isize {
     trace!("kernel:pid[{}] sys_fork", current_task().unwrap().pid.0);
     let current_task = current_task().unwrap();
@@ -53,6 +65,12 @@ pub fn sys_fork() -> isize {
 }
 
 /// 用指定路径的程序替换当前进程。
+///
+/// # 参数
+/// * `path` - 程序路径指针。
+///
+/// # 返回值
+/// 成功返回 0，失败返回 -1。
 pub fn sys_exec(path: *const u8) -> isize {
     trace!("kernel:pid[{}] sys_exec", current_task().unwrap().pid.0);
     let token = current_user_token();
@@ -67,7 +85,16 @@ pub fn sys_exec(path: *const u8) -> isize {
     }
 }
 
+/// 等待子进程退出。
+///
 /// 如果没有 pid 匹配的子进程，返回 -1；有但未退出，返回 -2。
+///
+/// # 参数
+/// * `pid` - 子进程 pid。
+/// * `exit_code_ptr` - 退出码写入指针。
+///
+/// # 返回值
+/// 成功返回子进程 pid，未找到返回 -1，未退出返回 -2。
 pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     trace!(
         "kernel::pid[{}] sys_waitpid [{}]",
@@ -114,6 +141,13 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
 /// 你的任务：获取时间（秒和微秒）。
 /// 提示：可结合虚拟内存管理实现。
 /// 提示：如果 [`TimeVal`] 跨页怎么办？
+///
+/// # 参数
+/// * `_ts` - 时间结构体指针。
+/// * `_tz` - 时区参数。
+///
+/// # 返回值
+/// 未实现，返回 -1。
 pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
     trace!(
         "kernel:pid[{}] sys_get_time NOT IMPLEMENTED",
@@ -123,6 +157,14 @@ pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
 }
 
 /// 你的任务：实现 mmap。
+///
+/// # 参数
+/// * `_start` - 起始地址。
+/// * `_len` - 长度。
+/// * `_port` - 端口。
+///
+/// # 返回值
+/// 未实现，返回 -1。
 pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
     trace!(
         "kernel:pid[{}] sys_mmap NOT IMPLEMENTED",
@@ -132,6 +174,13 @@ pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
 }
 
 /// 你的任务：实现 munmap。
+///
+/// # 参数
+/// * `_start` - 起始地址。
+/// * `_len` - 长度。
+///
+/// # 返回值
+/// 未实现，返回 -1。
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
     trace!(
         "kernel:pid[{}] sys_munmap NOT IMPLEMENTED",
@@ -141,6 +190,12 @@ pub fn sys_munmap(_start: usize, _len: usize) -> isize {
 }
 
 /// 改变数据段大小。
+///
+/// # 参数
+/// * `size` - 变化的字节数。
+///
+/// # 返回值
+/// 成功返回原 brk，失败返回 -1。
 pub fn sys_sbrk(size: i32) -> isize {
     trace!("kernel:pid[{}] sys_sbrk", current_task().unwrap().pid.0);
 
@@ -153,6 +208,12 @@ pub fn sys_sbrk(size: i32) -> isize {
 
 /// 你的任务：实现 spawn。
 /// 提示：fork + exec =/= spawn
+///
+/// # 参数
+/// * `_path` - 程序路径指针。
+///
+/// # 返回值
+/// 未实现，返回 -1。
 pub fn sys_spawn(_path: *const u8) -> isize {
     trace!(
         "kernel:pid[{}] sys_spawn NOT IMPLEMENTED",
@@ -162,6 +223,12 @@ pub fn sys_spawn(_path: *const u8) -> isize {
 }
 
 /// 你的任务：设置任务优先级。
+///
+/// # 参数
+/// * `_prio` - 优先级。
+///
+/// # 返回值
+/// 未实现，返回 -1。
 pub fn sys_set_priority(_prio: isize) -> isize {
     trace!(
         "kernel:pid[{}] sys_set_priority NOT IMPLEMENTED",

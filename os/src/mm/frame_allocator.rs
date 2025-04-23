@@ -14,6 +14,12 @@ pub struct FrameTracker {
 
 impl FrameTracker {
     /// 创建一个新的 FrameTracker。
+    ///
+    /// # 参数
+    /// * `ppn` - 物理页号。
+    ///
+    /// # 返回值
+    /// 新的 FrameTracker。
     pub fn new(ppn: PhysPageNum) -> Self {
         // 页清零。
         let bytes_array = ppn.get_bytes_array();
@@ -58,6 +64,10 @@ pub struct StackFrameAllocator {
 
 impl StackFrameAllocator {
     /// 初始化分配器，设置分配区间。
+    ///
+    /// # 参数
+    /// * `l` - 起始物理页号。
+    /// * `r` - 终止物理页号。
     pub fn init(&mut self, l: PhysPageNum, r: PhysPageNum) {
         self.current = l.0;
         self.end = r.0;
@@ -116,6 +126,9 @@ pub fn init_frame_allocator() {
 }
 
 /// 以 FrameTracker 形式分配一个物理页帧。
+///
+/// # 返回值
+/// 分配到的 FrameTracker（可选）。
 pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()
@@ -124,6 +137,9 @@ pub fn frame_alloc() -> Option<FrameTracker> {
 }
 
 /// 回收指定物理页号的物理页帧。
+///
+/// # 参数
+/// * `ppn` - 物理页号。
 pub fn frame_dealloc(ppn: PhysPageNum) {
     FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
 }

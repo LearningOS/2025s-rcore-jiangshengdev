@@ -55,6 +55,9 @@ pub fn suspend_current_and_run_next() {
 pub const IDLE_PID: usize = 0;
 
 /// 退出当前“运行中”任务并运行下一个任务。
+///
+/// # 参数
+/// * `exit_code` - 进程退出码。
 pub fn exit_current_and_run_next(exit_code: i32) {
     // 从 Processor 取出
     let task = take_current_task().unwrap();

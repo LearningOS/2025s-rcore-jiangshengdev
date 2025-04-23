@@ -26,11 +26,17 @@ pub struct TaskControlBlock {
 
 impl TaskControlBlock {
     /// 获取内部 TCB 的可变引用
+    ///
+    /// # 返回值
+    /// 返回对 TaskControlBlockInner 的独占可变引用。
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
 
     /// 获取应用页表的地址
+    ///
+    /// # 返回值
+    /// 返回当前进程用户空间页表的 token。
     pub fn get_user_token(&self) -> usize {
         let inner = self.inner_exclusive_access();
         inner.memory_set.token()
@@ -72,21 +78,33 @@ pub struct TaskControlBlockInner {
 
 impl TaskControlBlockInner {
     /// 获取 TrapContext
+    ///
+    /// # 返回值
+    /// 返回指向 TrapContext 的可变静态引用。
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.get_mut()
     }
 
     /// 获取用户 token
+    ///
+    /// # 返回值
+    /// 返回当前进程用户空间页表的 token。
     pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
 
     /// 获取任务状态
+    ///
+    /// # 返回值
+    /// 返回当前任务的状态。
     fn get_status(&self) -> TaskStatus {
         self.task_status
     }
 
     /// 判断是否为僵尸进程
+    ///
+    /// # 返回值
+    /// 如果当前任务为僵尸进程，返回 true，否则返回 false。
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
     }
@@ -96,6 +114,12 @@ impl TaskControlBlock {
     /// 创建新进程
     ///
     /// 目前仅用于创建 initproc
+    ///
+    /// # 参数
+    /// * `elf_data` - ELF 格式的应用程序二进制数据切片。
+    ///
+    /// # 返回值
+    /// 返回新建的 TaskControlBlock。
     pub fn new(elf_data: &[u8]) -> Self {
         // memory_set 包含 elf 程序头／trampoline／trap context／用户栈
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
@@ -139,6 +163,9 @@ impl TaskControlBlock {
     }
 
     /// 加载新的 elf，替换原有应用地址空间并开始执行
+    ///
+    /// # 参数
+    /// * `elf_data` - 新的 ELF 格式应用程序二进制数据切片。
     pub fn exec(&self, elf_data: &[u8]) {
         // memory_set 包含 elf 程序头／trampoline／trap context／用户栈
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
@@ -168,6 +195,9 @@ impl TaskControlBlock {
     }
 
     /// 父进程 fork 子进程
+    ///
+    /// # 返回值
+    /// 返回新建的子进程 TaskControlBlock 的 Arc 智能指针。
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // ---- 独占访问父 PCB
         let mut parent_inner = self.inner_exclusive_access();
@@ -212,11 +242,20 @@ impl TaskControlBlock {
     }
 
     /// 获取进程的 pid
+    ///
+    /// # 返回值
+    /// 返回当前进程的 pid。
     pub fn getpid(&self) -> usize {
         self.pid.0
     }
 
     /// 改变程序 break 的位置，失败返回 None
+    ///
+    /// # 参数
+    /// * `size` - 需要调整的字节数，正数为扩展，负数为收缩。
+    ///
+    /// # 返回值
+    /// 成功时返回原 program_brk，失败返回 None。
     pub fn change_program_brk(&self, size: i32) -> Option<usize> {
         let mut inner = self.inner_exclusive_access();
         let heap_bottom = inner.heap_bottom;

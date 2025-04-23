@@ -8,6 +8,14 @@ const FD_STDIN: usize = 0;
 const FD_STDOUT: usize = 1;
 
 /// 将长度为 `len` 的缓冲区写入文件描述符 `fd`。
+///
+/// # 参数
+/// * `fd` - 文件描述符。
+/// * `buf` - 缓冲区指针。
+/// * `len` - 缓冲区长度。
+///
+/// # 返回值
+/// 实际写入的字节数。
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     trace!("kernel:pid[{}] sys_write", current_task().unwrap().pid.0);
 
@@ -28,6 +36,14 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
 }
 
 /// 从文件描述符 `fd` 读取长度为 `len` 的数据到缓冲区。
+///
+/// # 参数
+/// * `fd` - 文件描述符。
+/// * `buf` - 缓冲区指针。
+/// * `len` - 缓冲区长度。
+///
+/// # 返回值
+/// 实际读取的字节数。
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     trace!("kernel:pid[{}] sys_read", current_task().unwrap().pid.0);
 

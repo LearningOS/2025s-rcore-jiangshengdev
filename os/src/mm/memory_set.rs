@@ -39,6 +39,9 @@ pub struct MemorySet {
 
 impl MemorySet {
     /// 创建一个空的 `MemorySet`。
+    ///
+    /// # 返回值
+    /// 新的空 MemorySet。
     pub fn new_bare() -> Self {
         Self {
             page_table: PageTable::new(),
@@ -47,11 +50,19 @@ impl MemorySet {
     }
 
     /// 获取页表 token。
+    ///
+    /// # 返回值
+    /// 页表 token。
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
 
     /// 假定无冲突，插入带帧的区域。
+    ///
+    /// # 参数
+    /// * `start_va` - 起始虚拟地址。
+    /// * `end_va` - 结束虚拟地址。
+    /// * `permission` - 区域权限。
     pub fn insert_framed_area(
         &mut self,
         start_va: VirtAddr,
@@ -65,6 +76,9 @@ impl MemorySet {
     }
 
     /// 移除以指定虚拟页号起始的区域。
+    ///
+    /// # 参数
+    /// * `start_vpn` - 起始虚拟页号。
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self
             .areas
@@ -79,6 +93,10 @@ impl MemorySet {
 
     /// 向该 MemorySet 添加一个新的 MapArea。
     /// 假定虚拟地址空间无冲突。
+    ///
+    /// # 参数
+    /// * `map_area` - 新的映射区域。
+    /// * `data` - 可选的数据切片。
     fn push(&mut self, mut map_area: MapArea, data: Option<&[u8]>) {
         map_area.map(&mut self.page_table);
 
@@ -99,6 +117,9 @@ impl MemorySet {
     }
 
     /// 不包含内核栈。
+    ///
+    /// # 返回值
+    /// 新的内核 MemorySet。
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
         // 映射 trampoline
@@ -165,6 +186,12 @@ impl MemorySet {
     }
 
     /// 包含 elf 各段、trampoline、TrapContext 和用户栈，同时返回用户栈顶和入口点。
+    ///
+    /// # 参数
+    /// * `elf_data` - ELF 格式的应用程序二进制数据切片。
+    ///
+    /// # 返回值
+    /// (MemorySet, 用户栈顶, 入口点)
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         // 映射 trampoline
@@ -249,6 +276,12 @@ impl MemorySet {
     }
 
     /// 通过拷贝已退出进程的地址空间代码和数据创建新地址空间。
+    ///
+    /// # 参数
+    /// * `user_space` - 已存在的用户空间。
+    ///
+    /// # 返回值
+    /// 新的 MemorySet。
     pub fn from_existed_user(user_space: &Self) -> Self {
         let mut memory_set = Self::new_bare();
         // 映射 trampoline
@@ -281,6 +314,12 @@ impl MemorySet {
     }
 
     /// 虚拟页号转页表项。
+    ///
+    /// # 参数
+    /// * `vpn` - 虚拟页号。
+    ///
+    /// # 返回值
+    /// 页表项（可选）。
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
@@ -291,6 +330,13 @@ impl MemorySet {
     }
 
     /// 将区域收缩到 new_end。
+    ///
+    /// # 参数
+    /// * `start` - 起始虚拟地址。
+    /// * `new_end` - 新的结束虚拟地址。
+    ///
+    /// # 返回值
+    /// 是否收缩成功。
     #[allow(unused)]
     pub fn shrink_to(&mut self, start: VirtAddr, new_end: VirtAddr) -> bool {
         if let Some(area) = self
@@ -306,6 +352,13 @@ impl MemorySet {
     }
 
     /// 将区域扩展到 new_end。
+    ///
+    /// # 参数
+    /// * `start` - 起始虚拟地址。
+    /// * `new_end` - 新的结束虚拟地址。
+    ///
+    /// # 返回值
+    /// 是否扩展成功。
     #[allow(unused)]
     pub fn append_to(&mut self, start: VirtAddr, new_end: VirtAddr) -> bool {
         if let Some(area) = self
@@ -330,6 +383,16 @@ pub struct MapArea {
 }
 
 impl MapArea {
+    /// 创建新的映射区域。
+    ///
+    /// # 参数
+    /// * `start_va` - 起始虚拟地址。
+    /// * `end_va` - 结束虚拟地址。
+    /// * `map_type` - 映射类型。
+    /// * `map_perm` - 区域权限。
+    ///
+    /// # 返回值
+    /// 新的 MapArea。
     pub fn new(
         start_va: VirtAddr,
         end_va: VirtAddr,
@@ -346,6 +409,13 @@ impl MapArea {
         }
     }
 
+    /// 从另一个区域复制。
+    ///
+    /// # 参数
+    /// * `another` - 另一个 MapArea。
+    ///
+    /// # 返回值
+    /// 新的 MapArea。
     pub fn from_another(another: &Self) -> Self {
         Self {
             vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
@@ -355,6 +425,11 @@ impl MapArea {
         }
     }
 
+    /// 为单个虚拟页号建立映射。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
+    /// * `vpn` - 虚拟页号。
     pub fn map_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         let ppn: PhysPageNum;
 
@@ -373,6 +448,11 @@ impl MapArea {
         page_table.map(vpn, ppn, pte_flags);
     }
 
+    /// 取消单个虚拟页号的映射。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
+    /// * `vpn` - 虚拟页号。
     pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
         if self.map_type == MapType::Framed {
             self.data_frames.remove(&vpn);
@@ -381,12 +461,20 @@ impl MapArea {
         page_table.unmap(vpn);
     }
 
+    /// 建立整个区域的映射。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
     pub fn map(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.map_one(page_table, vpn);
         }
     }
 
+    /// 取消整个区域的映射。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
     pub fn unmap(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
             self.unmap_one(page_table, vpn);
@@ -394,6 +482,11 @@ impl MapArea {
     }
 
     #[allow(unused)]
+    /// 区域收缩到 new_end。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
+    /// * `new_end` - 新的结束虚拟页号。
     pub fn shrink_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
         for vpn in VPNRange::new(new_end, self.vpn_range.get_end()) {
             self.unmap_one(page_table, vpn)
@@ -403,6 +496,11 @@ impl MapArea {
     }
 
     #[allow(unused)]
+    /// 区域扩展到 new_end。
+    ///
+    /// # 参数
+    /// * `page_table` - 页表。
+    /// * `new_end` - 新的结束虚拟页号。
     pub fn append_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
         for vpn in VPNRange::new(self.vpn_range.get_end(), new_end) {
             self.map_one(page_table, vpn)
@@ -411,8 +509,12 @@ impl MapArea {
         self.vpn_range = VPNRange::new(self.vpn_range.get_start(), new_end);
     }
 
+    /// 拷贝数据到区域。
     /// 数据：起始对齐但可能长度较短。
     /// 假定所有帧已清空。
+    /// # 参数
+    /// * `page_table` - 页表。
+    /// * `data` - 数据切片。
     pub fn copy_data(&mut self, page_table: &mut PageTable, data: &[u8]) {
         assert_eq!(self.map_type, MapType::Framed);
         let mut start: usize = 0;
@@ -461,6 +563,7 @@ bitflags! {
 
 /// 内核空间重映射测试。
 #[allow(unused)]
+/// 内核空间重映射测试。
 pub fn remap_test() {
     let mut kernel_space = KERNEL_SPACE.exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();

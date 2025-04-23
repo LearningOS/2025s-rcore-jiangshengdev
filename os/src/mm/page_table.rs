@@ -29,6 +29,13 @@ pub struct PageTableEntry {
 
 impl PageTableEntry {
     /// 创建一个新的页表项。
+    ///
+    /// # 参数
+    /// * `ppn` - 物理页号。
+    /// * `flags` - 页表项标志位。
+    ///
+    /// # 返回值
+    /// 新的 PageTableEntry。
     pub fn new(ppn: PhysPageNum, flags: PTEFlags) -> Self {
         PageTableEntry {
             bits: ppn.0 << 10 | flags.bits as usize,
@@ -36,36 +43,57 @@ impl PageTableEntry {
     }
 
     /// 创建一个空页表项。
+    ///
+    /// # 返回值
+    /// 空的 PageTableEntry。
     pub fn empty() -> Self {
         PageTableEntry { bits: 0 }
     }
 
     /// 从页表项中获取物理页号。
+    ///
+    /// # 返回值
+    /// 页表项对应的物理页号。
     pub fn ppn(&self) -> PhysPageNum {
         (self.bits >> 10 & ((1usize << 44) - 1)).into()
     }
 
     /// 从页表项中获取标志位。
+    ///
+    /// # 返回值
+    /// 页表项的标志位。
     pub fn flags(&self) -> PTEFlags {
         PTEFlags::from_bits(self.bits as u8).unwrap()
     }
 
     /// 页表项指向的页是否有效？
+    ///
+    /// # 返回值
+    /// 有效返回 true，否则返回 false。
     pub fn is_valid(&self) -> bool {
         (self.flags() & PTEFlags::V) != PTEFlags::empty()
     }
 
     /// 页表项指向的页是否可读？
+    ///
+    /// # 返回值
+    /// 可读返回 true，否则返回 false。
     pub fn readable(&self) -> bool {
         (self.flags() & PTEFlags::R) != PTEFlags::empty()
     }
 
     /// 页表项指向的页是否可写？
+    ///
+    /// # 返回值
+    /// 可写返回 true，否则返回 false。
     pub fn writable(&self) -> bool {
         (self.flags() & PTEFlags::W) != PTEFlags::empty()
     }
 
     /// 页表项指向的页是否可执行？
+    ///
+    /// # 返回值
+    /// 可执行返回 true，否则返回 false。
     pub fn executable(&self) -> bool {
         (self.flags() & PTEFlags::X) != PTEFlags::empty()
     }
@@ -80,6 +108,9 @@ pub struct PageTable {
 /// 假设创建/映射时不会 OOM。
 impl PageTable {
     /// 创建一个新的页表。
+    ///
+    /// # 返回值
+    /// 新的 PageTable。
     pub fn new() -> Self {
         let frame = frame_alloc().unwrap();
         PageTable {
@@ -89,6 +120,12 @@ impl PageTable {
     }
 
     /// 临时用于从用户空间获取参数。
+    ///
+    /// # 参数
+    /// * `satp` - 页表 token。
+    ///
+    /// # 返回值
+    /// 新的 PageTable。
     pub fn from_token(satp: usize) -> Self {
         Self {
             root_ppn: PhysPageNum::from(satp & ((1usize << 44) - 1)),
@@ -147,6 +184,11 @@ impl PageTable {
     }
 
     /// 设置虚拟页号与物理页号的映射关系。
+    ///
+    /// # 参数
+    /// * `vpn` - 虚拟页号。
+    /// * `ppn` - 物理页号。
+    /// * `flags` - 页表项标志位。
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = self.find_pte_create(vpn).unwrap();
@@ -155,6 +197,9 @@ impl PageTable {
     }
 
     /// 移除虚拟页号与物理页号的映射关系。
+    ///
+    /// # 参数
+    /// * `vpn` - 虚拟页号。
     #[allow(unused)]
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = self.find_pte(vpn).unwrap();
@@ -163,11 +208,23 @@ impl PageTable {
     }
 
     /// 通过虚拟页号获取页表项。
+    ///
+    /// # 参数
+    /// * `vpn` - 虚拟页号。
+    ///
+    /// # 返回值
+    /// 页表项（可选）。
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
     /// 通过虚拟地址获取物理地址。
+    ///
+    /// # 参数
+    /// * `va` - 虚拟地址。
+    ///
+    /// # 返回值
+    /// 物理地址（可选）。
     pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.clone().floor()).map(|pte| {
             //println!("translate_va:va = {:?}", va);
@@ -180,12 +237,23 @@ impl PageTable {
     }
 
     /// 获取页表的 token。
+    ///
+    /// # 返回值
+    /// 页表 token。
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
     }
 }
 
 /// 通过页表将 ptr[u8] 数组（长度为 len）转换为可变 u8 切片 Vec。
+///
+/// # 参数
+/// * `token` - 页表 token。
+/// * `ptr` - 用户空间指针。
+/// * `len` - 长度。
+///
+/// # 返回值
+/// Vec，每个元素为一段可变 u8 切片。
 pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
     let page_table = PageTable::from_token(token);
     let mut start = ptr as usize;
@@ -213,6 +281,13 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
 }
 
 /// 通过页表将以 `\0` 结尾的 ptr[u8] 数组转换为 `String`。
+///
+/// # 参数
+/// * `token` - 页表 token。
+/// * `ptr` - 用户空间指针。
+///
+/// # 返回值
+/// 转换后的 String。
 pub fn translated_str(token: usize, ptr: *const u8) -> String {
     let page_table = PageTable::from_token(token);
     let mut string = String::new();
@@ -236,6 +311,13 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
 }
 
 /// 通过页表将 ptr[u8] 数组转换为 T 的可变引用。
+///
+/// # 参数
+/// * `token` - 页表 token。
+/// * `ptr` - 用户空间指针。
+///
+/// # 返回值
+/// 可变引用。
 pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
     //trace!("into translated_refmut!");
     let page_table = PageTable::from_token(token);

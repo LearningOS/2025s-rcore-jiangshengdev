@@ -116,21 +116,33 @@ impl From<VirtPageNum> for usize {
 /// 虚拟地址相关实现
 impl VirtAddr {
     /// 获取（向下取整的）虚拟页号。
+    ///
+    /// # 返回值
+    /// 向下取整后的虚拟页号。
     pub fn floor(&self) -> VirtPageNum {
         VirtPageNum(self.0 / PAGE_SIZE)
     }
 
     /// 获取（向上取整的）虚拟页号。
+    ///
+    /// # 返回值
+    /// 向上取整后的虚拟页号。
     pub fn ceil(&self) -> VirtPageNum {
         VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
 
     /// 获取虚拟地址的页内偏移。
+    ///
+    /// # 返回值
+    /// 页内偏移量。
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
 
     /// 检查虚拟地址是否按页对齐。
+    ///
+    /// # 返回值
+    /// 若对齐则为 true，否则为 false。
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
@@ -151,21 +163,33 @@ impl From<VirtPageNum> for VirtAddr {
 
 impl PhysAddr {
     /// 获取（向下取整的）物理页号。
+    ///
+    /// # 返回值
+    /// 向下取整后的物理页号。
     pub fn floor(&self) -> PhysPageNum {
         PhysPageNum(self.0 / PAGE_SIZE)
     }
 
     /// 获取（向上取整的）物理页号。
+    ///
+    /// # 返回值
+    /// 向上取整后的物理页号。
     pub fn ceil(&self) -> PhysPageNum {
         PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE)
     }
 
     /// 获取物理地址的页内偏移。
+    ///
+    /// # 返回值
+    /// 页内偏移量。
     pub fn page_offset(&self) -> usize {
         self.0 & (PAGE_SIZE - 1)
     }
 
     /// 检查物理地址是否按页对齐。
+    ///
+    /// # 返回值
+    /// 若对齐则为 true，否则为 false。
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
@@ -186,6 +210,9 @@ impl From<PhysPageNum> for PhysAddr {
 
 impl VirtPageNum {
     /// 获取页表项的三级索引。
+    ///
+    /// # 返回值
+    /// 长度为 3 的数组，依次为三级页表索引。
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut idx = [0usize; 3];
@@ -208,6 +235,9 @@ impl PhysAddr {
 
 impl PhysPageNum {
     /// 获取页表（PageTableEntry 数组）的可变引用。
+    ///
+    /// # 返回值
+    /// 指向该物理页的页表项数组的可变引用。
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = (*self).into();
 
@@ -215,6 +245,9 @@ impl PhysPageNum {
     }
 
     /// 获取页（字节数组）的可变引用。
+    ///
+    /// # 返回值
+    /// 指向该物理页的字节数组的可变引用。
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
 
@@ -222,6 +255,12 @@ impl PhysPageNum {
     }
 
     /// 获取物理地址的可变引用。
+    ///
+    /// # 类型参数
+    /// * `T` - 目标类型。
+    ///
+    /// # 返回值
+    /// 指向该物理页的可变引用。
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
         pa.get_mut()
@@ -254,15 +293,31 @@ impl<T> SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 创建一个新的区间。
+    ///
+    /// # 参数
+    /// * `start` - 区间起点。
+    /// * `end` - 区间终点。
+    ///
+    /// # 返回值
+    /// 新的 SimpleRange 实例。
     pub fn new(start: T, end: T) -> Self {
         assert!(start <= end, "start {:?} > end {:?}!", start, end);
         Self { l: start, r: end }
     }
 
+    /// 获取区间起点。
+    ///
+    /// # 返回值
+    /// 区间起点。
     pub fn get_start(&self) -> T {
         self.l
     }
 
+    /// 获取区间终点。
+    ///
+    /// # 返回值
+    /// 区间终点。
     pub fn get_end(&self) -> T {
         self.r
     }
@@ -294,6 +349,14 @@ impl<T> SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// 创建一个新的迭代器。
+    ///
+    /// # 参数
+    /// * `l` - 起始值。
+    /// * `r` - 终止值。
+    ///
+    /// # 返回值
+    /// 新的 SimpleRangeIterator 实例。
     pub fn new(l: T, r: T) -> Self {
         Self { current: l, end: r }
     }

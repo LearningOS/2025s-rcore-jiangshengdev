@@ -14,6 +14,10 @@ impl Write for Stdout {
     }
 }
 
+/// 向主机控制台输出格式化内容。
+///
+/// # 参数
+/// * `args` - 格式化参数。
 pub fn print(args: fmt::Arguments) {
     Stdout.write_fmt(args).unwrap();
 }

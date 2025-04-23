@@ -28,6 +28,9 @@ impl Default for Processor {
 
 impl Processor {
     /// 创建一个空的 Processor。
+    ///
+    /// # 返回值
+    /// 新的 Processor。
     pub fn new() -> Self {
         Self {
             current: None,
@@ -36,16 +39,25 @@ impl Processor {
     }
 
     /// 获取 `idle_task_cx` 的可变指针。
+    ///
+    /// # 返回值
+    /// 指向 idle_task_cx 的可变指针。
     fn get_idle_task_cx_ptr(&mut self) -> *mut TaskContext {
         &mut self.idle_task_cx as *mut _
     }
 
     /// 获取当前任务（移动语义）。
+    ///
+    /// # 返回值
+    /// 当前任务（可选），并将其从 current 移除。
     pub fn take_current(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.current.take()
     }
 
     /// 获取当前任务（克隆语义）。
+    ///
+    /// # 返回值
+    /// 当前任务的克隆（可选）。
     pub fn current(&self) -> Option<Arc<TaskControlBlock>> {
         self.current.as_ref().map(Arc::clone)
     }
@@ -84,22 +96,34 @@ pub fn run_tasks() {
 }
 
 /// 通过 take 获取当前任务，并置为 None。
+///
+/// # 返回值
+/// 返回当前任务的 Arc 智能指针（可选），并将其从 current 移除。
 pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
     PROCESSOR.exclusive_access().take_current()
 }
 
 /// 获取当前任务的克隆。
+///
+/// # 返回值
+/// 返回当前任务的 Arc 智能指针（可选）。
 pub fn current_task() -> Option<Arc<TaskControlBlock>> {
     PROCESSOR.exclusive_access().current()
 }
 
 /// 获取当前用户 token（页表地址）。
+///
+/// # 返回值
+/// 返回当前任务的用户 token。
 pub fn current_user_token() -> usize {
     let task = current_task().unwrap();
     task.get_user_token()
 }
 
 /// 获取当前任务的 trap context 可变引用。
+///
+/// # 返回值
+/// 返回当前任务的 trap context 可变引用。
 pub fn current_trap_cx() -> &'static mut TrapContext {
     current_task()
         .unwrap()
@@ -108,6 +132,9 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 }
 
 /// 返回到 idle 控制流以进行新一轮调度。
+///
+/// # 参数
+/// * `switched_task_cx_ptr` - 被切换出去的任务上下文指针。
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = PROCESSOR.exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();

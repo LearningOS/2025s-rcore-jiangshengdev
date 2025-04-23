@@ -19,6 +19,9 @@ impl Default for TaskManager {
 
 impl TaskManager {
     /// 创建一个空的 TaskManager。
+    ///
+    /// # 返回值
+    /// 新的 TaskManager。
     pub fn new() -> Self {
         Self {
             ready_queue: VecDeque::new(),
@@ -26,11 +29,17 @@ impl TaskManager {
     }
 
     /// 将进程加入就绪队列。
+    ///
+    /// # 参数
+    /// * `task` - 要加入的任务。
     pub fn add(&mut self, task: Arc<TaskControlBlock>) {
         self.ready_queue.push_back(task);
     }
 
     /// 从就绪队列取出一个进程。
+    ///
+    /// # 返回值
+    /// 取出的任务（可选）。
     pub fn fetch(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.ready_queue.pop_front()
     }
@@ -43,12 +52,18 @@ lazy_static! {
 }
 
 /// 将进程加入就绪队列。
+///
+/// # 参数
+/// * `task` - 要加入的任务。
 pub fn add_task(task: Arc<TaskControlBlock>) {
     //trace!("kernel: TaskManager::add_task");
     TASK_MANAGER.exclusive_access().add(task);
 }
 
 /// 从就绪队列取出一个进程。
+///
+/// # 返回值
+/// 取出的任务（可选）。
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     //trace!("kernel: TaskManager::fetch_task");
     TASK_MANAGER.exclusive_access().fetch()

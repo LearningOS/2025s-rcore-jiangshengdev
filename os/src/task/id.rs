@@ -14,6 +14,10 @@ pub struct RecycleAllocator {
 }
 
 impl RecycleAllocator {
+    /// 创建一个新的回收分配器。
+    ///
+    /// # 返回值
+    /// 新的 RecycleAllocator 实例。
     pub fn new() -> Self {
         RecycleAllocator {
             current: 0,
@@ -21,6 +25,10 @@ impl RecycleAllocator {
         }
     }
 
+    /// 分配一个新的 id。
+    ///
+    /// # 返回值
+    /// 分配得到的 id。
     pub fn alloc(&mut self) -> usize {
         if let Some(id) = self.recycled.pop() {
             id
@@ -30,6 +38,10 @@ impl RecycleAllocator {
         }
     }
 
+    /// 回收一个 id。
+    ///
+    /// # 参数
+    /// * `id` - 要回收的 id。
     pub fn dealloc(&mut self, id: usize) {
         assert!(id < self.current);
         assert!(
@@ -59,11 +71,20 @@ impl Drop for PidHandle {
 }
 
 /// 分配一个新的 PID。
+///
+/// # 返回值
+/// 新的 PidHandle。
 pub fn pid_alloc() -> PidHandle {
     PidHandle(PID_ALLOCATOR.exclusive_access().alloc())
 }
 
 /// 返回内核空间中某应用内核栈的（底部，顶部）地址。
+///
+/// # 参数
+/// * `app_id` - 应用编号。
+///
+/// # 返回值
+/// (底部地址, 顶部地址) 元组。
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     let top = TRAMPOLINE - app_id * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
@@ -74,6 +95,9 @@ pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
 pub struct KernelStack(pub usize);
 
 /// 分配一个新的内核栈。
+///
+/// # 返回值
+/// 新的 KernelStack。
 pub fn kstack_alloc() -> KernelStack {
     let kstack_id = KSTACK_ALLOCATOR.exclusive_access().alloc();
     let (kstack_bottom, kstack_top) = kernel_stack_position(kstack_id);
@@ -98,6 +122,12 @@ impl Drop for KernelStack {
 
 impl KernelStack {
     /// 将类型为 T 的变量压入内核栈顶，并返回其裸指针。
+    ///
+    /// # 参数
+    /// * `value` - 要压入栈顶的值。
+    ///
+    /// # 返回值
+    /// 指向栈顶该值的裸指针。
     #[allow(unused)]
     pub fn push_on_top<T>(&self, value: T) -> *mut T
     where
@@ -114,6 +144,9 @@ impl KernelStack {
     }
 
     /// 获取内核栈顶地址。
+    ///
+    /// # 返回值
+    /// 内核栈顶地址。
     pub fn get_top(&self) -> usize {
         let (_, kernel_stack_top) = kernel_stack_position(self.0);
         kernel_stack_top

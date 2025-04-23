@@ -1,9 +1,12 @@
 //! 加载用户应用到内存。
 
-/// 获取应用数量。
 use alloc::vec::Vec;
 use lazy_static::*;
 
+/// 获取应用数量。
+///
+/// # 返回
+/// 应用的数量。
 pub fn get_num_app() -> usize {
     extern "C" {
         fn _num_app();
@@ -13,6 +16,12 @@ pub fn get_num_app() -> usize {
 }
 
 /// 获取指定应用的数据。
+///
+/// # 参数
+/// * `app_id` - 应用编号。
+///
+/// # 返回
+/// 指定应用的二进制数据切片。
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
     extern "C" {
         fn _num_app();
@@ -57,6 +66,12 @@ lazy_static! {
 
 #[allow(unused)]
 /// 通过名称获取应用数据。
+///
+/// # 参数
+/// * `name` - 应用名称。
+///
+/// # 返回
+/// 若找到则返回应用数据切片，否则为 None。
 pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
     let num_app = get_num_app();
     (0..num_app)

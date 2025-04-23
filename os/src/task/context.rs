@@ -14,6 +14,9 @@ pub struct TaskContext {
 
 impl TaskContext {
     /// 创建一个全零的任务上下文。
+    ///
+    /// # 返回值
+    /// 返回全零的 TaskContext。
     pub fn zero_init() -> Self {
         Self {
             ra: 0,
@@ -23,6 +26,12 @@ impl TaskContext {
     }
 
     /// 创建一个带 trap 返回地址和内核栈指针的任务上下文。
+    ///
+    /// # 参数
+    /// * `kstack_ptr` - 内核栈指针。
+    ///
+    /// # 返回值
+    /// 返回新的 TaskContext。
     pub fn goto_trap_return(kstack_ptr: usize) -> Self {
         Self {
             ra: trap_return as usize,

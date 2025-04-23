@@ -19,12 +19,11 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
+extern crate alloc;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
 extern crate log;
-
-extern crate alloc;
 
 #[macro_use]
 mod console;
@@ -47,6 +46,9 @@ global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
 
 /// 清空 BSS 段。
+///
+/// # Safety
+/// 该函数会修改内存中的 BSS 段。
 fn clear_bss() {
     extern "C" {
         fn sbss();
@@ -97,6 +99,9 @@ fn kernel_log_info() {
 
 #[no_mangle]
 /// Rust 入口点。
+///
+/// # 返回
+/// 永不返回（发散函数），内核主流程。
 pub fn rust_main() -> ! {
     clear_bss();
     kernel_log_info();

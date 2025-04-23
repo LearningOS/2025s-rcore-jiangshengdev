@@ -21,11 +21,24 @@ pub struct TrapContext {
 
 impl TrapContext {
     /// 将 sp（栈指针）写入 TrapContext 的 x[2] 字段。
+    ///
+    /// # 参数
+    /// * `sp` - 栈指针。
     pub fn set_sp(&mut self, sp: usize) {
         self.x[2] = sp;
     }
 
     /// 初始化应用的 trap 上下文。
+    ///
+    /// # 参数
+    /// * `entry` - 应用入口点。
+    /// * `sp` - 用户栈指针。
+    /// * `kernel_satp` - 内核页表 token。
+    /// * `kernel_sp` - 内核栈指针。
+    /// * `trap_handler` - trap 处理函数地址。
+    ///
+    /// # 返回值
+    /// 初始化后的 TrapContext。
     pub fn app_init_context(
         entry: usize,
         sp: usize,

@@ -16,6 +16,12 @@ unsafe impl<T> Sync for UPSafeCell<T> {}
 impl<T> UPSafeCell<T> {
     /// # Safety
     /// 用户需保证内部结构体仅在单核处理器中使用。
+    ///
+    /// # 参数
+    /// * `value` - 要包裹的值。
+    ///
+    /// # 返回值
+    /// 新的 UPSafeCell。
     pub unsafe fn new(value: T) -> Self {
         Self {
             inner: RefCell::new(value),
@@ -23,6 +29,9 @@ impl<T> UPSafeCell<T> {
     }
 
     /// 若数据已被借用则 panic。
+    ///
+    /// # 返回值
+    /// 内部数据的可变引用。
     pub fn exclusive_access(&self) -> RefMut<'_, T> {
         self.inner.borrow_mut()
     }

@@ -15,17 +15,26 @@ const MSEC_PER_SEC: usize = 1000;
 const MICRO_PER_SEC: usize = 1_000_000;
 
 /// 获取当前时钟周期数
+///
+/// # 返回值
+/// 当前时钟周期数。
 pub fn get_time() -> usize {
     time::read()
 }
 
 /// 获取当前时间（毫秒）
+///
+/// # 返回值
+/// 当前时间，单位为毫秒。
 #[allow(dead_code)]
 pub fn get_time_ms() -> usize {
     time::read() * MSEC_PER_SEC / CLOCK_FREQ
 }
 
 /// 获取当前时间（微秒）
+///
+/// # 返回值
+/// 当前时间，单位为微秒。
 #[allow(dead_code)]
 pub fn get_time_us() -> usize {
     time::read() * MICRO_PER_SEC / CLOCK_FREQ

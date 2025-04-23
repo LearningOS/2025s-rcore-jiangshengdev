@@ -48,6 +48,9 @@ pub fn enable_timer_interrupt() {
 }
 
 /// trap 处理函数。
+///
+/// # 返回
+/// 永不返回（发散函数）。
 #[no_mangle]
 pub fn trap_handler() -> ! {
     set_kernel_trap_entry();
@@ -106,6 +109,9 @@ pub fn trap_handler() -> ! {
 /// 设置 TRAMPOLINE 页中 __restore 汇编函数的新地址，
 /// 设置寄存器 a0 = trap_cx_ptr，a1 = 用户页表物理地址，
 /// 最后跳转到 __restore 汇编函数的新地址。
+///
+/// # 返回
+/// 永不返回（发散函数）。
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_cx_ptr = TRAP_CONTEXT_BASE;
@@ -132,6 +138,9 @@ pub fn trap_return() -> ! {
 /// 处理来自内核的 trap。
 /// 未实现：来自内核态的 trap/中断/异常。
 /// Todo: 第九章 I/O 设备。
+///
+/// # 返回
+/// 永不返回（发散函数）。
 pub fn trap_from_kernel() -> ! {
     use riscv::register::sepc;
     trace!("stval = {:#x}, sepc = {:#x}", stval::read(), sepc::read());
