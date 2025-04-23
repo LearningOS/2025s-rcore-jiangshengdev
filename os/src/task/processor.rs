@@ -135,12 +135,12 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 ///
 /// # 参数
 /// * `switched_task_cx_ptr` - 被切换出去的任务上下文指针。
-pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
+///
+/// # Safety
+/// 该函数会解引用传入的裸指针，调用者需保证指针有效。
+pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = PROCESSOR.exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
-
-    unsafe {
-        __switch(switched_task_cx_ptr, idle_task_cx_ptr);
-    }
+    __switch(switched_task_cx_ptr, idle_task_cx_ptr);
 }

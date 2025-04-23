@@ -48,7 +48,9 @@ pub fn suspend_current_and_run_next() {
     // 放回就绪队列。
     add_task(task);
     // 跳转到调度循环
-    schedule(task_cx_ptr);
+    unsafe {
+        schedule(task_cx_ptr);
+    }
 }
 
 /// usertests 应用的 pid（make run TEST=1 时）。
@@ -100,7 +102,9 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     drop(task);
     // 不需要保存任务上下文
     let mut _unused = TaskContext::zero_init();
-    schedule(&mut _unused as *mut _);
+    unsafe {
+        schedule(&mut _unused as *mut _);
+    }
 }
 
 lazy_static! {
