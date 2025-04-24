@@ -79,7 +79,9 @@ fn create_processor() -> UPSafeCell<Processor> {
 
     unsafe {
 
-        UPSafeCell::new(Processor::new())
+        let processor = Processor::new();
+
+        UPSafeCell::new(processor)
     }
 }
 

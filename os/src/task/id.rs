@@ -70,7 +70,9 @@ fn create_pid_allocator() -> UPSafeCell<RecycleAllocator> {
 
     unsafe {
 
-        UPSafeCell::new(RecycleAllocator::new())
+        let recycle_allocator = RecycleAllocator::new();
+
+        UPSafeCell::new(recycle_allocator)
     }
 }
 
@@ -108,7 +110,11 @@ impl Drop for PidHandle {
 
 pub fn pid_alloc() -> PidHandle {
 
-    PidHandle(PID_ALLOCATOR.exclusive_access().alloc())
+    let pid_allocator = &PID_ALLOCATOR;
+
+    let i = pid_allocator.exclusive_access().alloc();
+
+    PidHandle(i)
 }
 
 /// 返回内核空间中某应用内核栈的（底部，顶部）地址。

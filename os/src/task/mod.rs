@@ -140,9 +140,11 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
 fn create_initproc() -> Arc<TaskControlBlock> {
 
-    Arc::new(TaskControlBlock::new(
-        get_app_data_by_name("ch5b_initproc").unwrap(),
-    ))
+    let data = get_app_data_by_name("ch5b_initproc").unwrap();
+
+    let task_control_block = TaskControlBlock::new(data);
+
+    Arc::new(task_control_block)
 }
 
 lazy_static! {

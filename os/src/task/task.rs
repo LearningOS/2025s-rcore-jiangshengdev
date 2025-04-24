@@ -154,36 +154,58 @@ impl TaskControlBlock {
         let kernel_stack_top = kernel_stack.get_top();
 
         // 将进入 trap_return 的任务上下文压入内核栈顶
+        let inner = unsafe {
+
+            let task_cx = TaskContext::goto_trap_return(kernel_stack_top);
+
+            let children = Vec::new();
+
+            let base_size = user_sp;
+
+            let heap_bottom = user_sp;
+
+            let program_brk = user_sp;
+
+            let parent = None;
+
+            let task_status = TaskStatus::Ready;
+
+            let exit_code = 0;
+
+            UPSafeCell::new(TaskControlBlockInner {
+                trap_cx_ppn,
+                base_size,
+                task_cx,
+                task_status,
+                memory_set,
+                parent,
+                children,
+                exit_code,
+                heap_bottom,
+                program_brk,
+            })
+        };
+
         let task_control_block = Self {
             pid: pid_handle,
             kernel_stack,
-            inner: unsafe {
-
-                UPSafeCell::new(TaskControlBlockInner {
-                    trap_cx_ppn,
-                    base_size: user_sp,
-                    task_cx: TaskContext::goto_trap_return(kernel_stack_top),
-                    task_status: TaskStatus::Ready,
-                    memory_set,
-                    parent: None,
-                    children: Vec::new(),
-                    exit_code: 0,
-                    heap_bottom: user_sp,
-                    program_brk: user_sp,
-                })
-            },
+            inner,
         };
 
         // 在用户空间准备 TrapContext
         let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
 
-        *trap_cx = TrapContext::app_init_context(
+        let kernel_satp = KERNEL_SPACE.exclusive_access().token();
+
+        let context = TrapContext::app_init_context(
             entry_point,
             user_sp,
-            KERNEL_SPACE.exclusive_access().token(),
+            kernel_satp,
             kernel_stack_top,
             trap_handler as usize,
         );
+
+        *trap_cx = context;
 
         task_control_block
     }
