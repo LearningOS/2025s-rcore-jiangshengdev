@@ -19,6 +19,7 @@ mod switch;
 mod task;
 
 use crate::loader::get_app_data_by_name;
+use alloc::string::String;
 use alloc::sync::Arc;
 use lazy_static::*;
 pub use manager::{fetch_task, TaskManager};
@@ -128,7 +129,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     drop(task);
 
     // 不需要保存任务上下文
-    let mut _unused = TaskContext::zero_init();
+    let mut _unused = TaskContext::zero_init("_unused");
 
     unsafe {
 
@@ -140,9 +141,11 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
 fn create_initproc() -> Arc<TaskControlBlock> {
 
-    let data = get_app_data_by_name("ch5b_initproc").unwrap();
+    let name = "ch5b_initproc";
 
-    let task_control_block = TaskControlBlock::new(data);
+    let data = get_app_data_by_name(name).unwrap();
+
+    let task_control_block = TaskControlBlock::new(data, String::from(name));
 
     Arc::new(task_control_block)
 }

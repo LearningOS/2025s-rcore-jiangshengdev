@@ -6,6 +6,7 @@ use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
 use crate::trap::{trap_handler, TrapContext};
+use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use core::cell::RefMut;
@@ -81,6 +82,9 @@ pub struct TaskControlBlockInner {
 
     /// 程序 break
     pub program_brk: usize,
+
+    /// 进程名
+    pub name: String,
 }
 
 impl TaskControlBlockInner {
@@ -132,11 +136,12 @@ impl TaskControlBlock {
     ///
     /// # 参数
     /// * `elf_data` - ELF 格式的应用程序二进制数据切片。
+    /// * `name` - 进程名。
     ///
     /// # 返回值
     /// 返回新建的 TaskControlBlock。
 
-    pub fn new(elf_data: &[u8]) -> Self {
+    pub fn new(elf_data: &[u8], name: String) -> Self {
 
         // memory_set 包含 elf 程序头／trampoline／trap context／用户栈
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
@@ -156,7 +161,7 @@ impl TaskControlBlock {
         // 将进入 trap_return 的任务上下文压入内核栈顶
         let inner = unsafe {
 
-            let task_cx = TaskContext::goto_trap_return(kernel_stack_top);
+            let task_cx = TaskContext::goto_trap_return(kernel_stack_top, &name);
 
             let children = Vec::new();
 
@@ -183,6 +188,7 @@ impl TaskControlBlock {
                 exit_code,
                 heap_bottom,
                 program_brk,
+                name,
             })
         };
 
@@ -214,8 +220,9 @@ impl TaskControlBlock {
     ///
     /// # 参数
     /// * `elf_data` - 新的 ELF 格式应用程序二进制数据切片。
+    /// * `name` - 新的进程名。
 
-    pub fn exec(&self, elf_data: &[u8]) {
+    pub fn exec(&self, elf_data: &[u8], name: String) {
 
         // memory_set 包含 elf 程序头／trampoline／trap context／用户栈
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
@@ -236,6 +243,9 @@ impl TaskControlBlock {
 
         // 初始化 base_size
         inner.base_size = user_sp;
+
+        // 更换进程名
+        inner.name = name;
 
         // 初始化 trap_cx
         let trap_cx = inner.get_trap_cx();
@@ -275,6 +285,8 @@ impl TaskControlBlock {
 
         let kernel_stack_top = kernel_stack.get_top();
 
+        let name = parent_inner.name.clone();
+
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
@@ -283,7 +295,7 @@ impl TaskControlBlock {
                 UPSafeCell::new(TaskControlBlockInner {
                     trap_cx_ppn,
                     base_size: parent_inner.base_size,
-                    task_cx: TaskContext::goto_trap_return(kernel_stack_top),
+                    task_cx: TaskContext::goto_trap_return(kernel_stack_top, &name),
                     task_status: TaskStatus::Ready,
                     memory_set,
                     parent: Some(Arc::downgrade(self)),
@@ -291,6 +303,7 @@ impl TaskControlBlock {
                     exit_code: 0,
                     heap_bottom: parent_inner.heap_bottom,
                     program_brk: parent_inner.program_brk,
+                    name,
                 })
             },
         });

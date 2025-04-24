@@ -8,9 +8,10 @@ use super::{fetch_task, TaskStatus};
 use super::{TaskContext, TaskControlBlock};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
+use crate::utils;
+use crate::utils::consume;
 use alloc::sync::Arc;
 use lazy_static::*;
-use crate::utils;
 
 /// 处理器管理结构体。
 
@@ -39,7 +40,7 @@ impl Processor {
 
         Self {
             current: None,
-            idle_task_cx: TaskContext::zero_init(),
+            idle_task_cx: TaskContext::zero_init("idle"),
         }
     }
 
@@ -119,9 +120,26 @@ pub fn run_tasks() {
             // 手动释放 processor
             drop(processor);
 
+            // 打印切换前后任务名
+            let idle_name = unsafe {
+
+                (*idle_task_cx_ptr).debug_name()
+            };
+
+            let next_name = unsafe {
+
+                (*next_task_cx_ptr).debug_name()
+            };
+
+            // println!("[run_tasks] __switch: idle -> next, idle_name: {}, next_name: {}", idle_name, next_name);
+            consume(idle_name);
+
+            consume(next_name);
+
             unsafe {
 
                 __switch(idle_task_cx_ptr, next_task_cx_ptr);
+
                 utils::do_nothing();
             }
         } else {
@@ -192,6 +210,18 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
 
     drop(processor);
 
+    // 打印切换前后任务名
+    let switched_name = (*switched_task_cx_ptr).debug_name();
+
+    let idle_name = (*idle_task_cx_ptr).debug_name();
+
+    // println!("[schedule] __switch: switched -> idle, switched_name: {}, idle_name: {}", switched_name, idle_name);
+
+    consume(switched_name);
+
+    consume(idle_name);
+
     __switch(switched_task_cx_ptr, idle_task_cx_ptr);
+
     utils::do_nothing();
 }

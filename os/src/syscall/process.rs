@@ -114,7 +114,7 @@ pub fn sys_exec(path: *const u8) -> isize {
 
         let task = current_task().unwrap();
 
-        task.exec(data);
+        task.exec(data, path);
 
         0
     } else {
