@@ -10,6 +10,7 @@ use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
 use lazy_static::*;
+use crate::utils;
 
 /// 处理器管理结构体。
 
@@ -121,6 +122,7 @@ pub fn run_tasks() {
             unsafe {
 
                 __switch(idle_task_cx_ptr, next_task_cx_ptr);
+                utils::do_nothing();
             }
         } else {
 
@@ -191,4 +193,5 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     drop(processor);
 
     __switch(switched_task_cx_ptr, idle_task_cx_ptr);
+    utils::do_nothing();
 }
