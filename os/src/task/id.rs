@@ -64,15 +64,29 @@ impl RecycleAllocator {
     }
 }
 
+/// 创建并返回回收分配器的 UPSafeCell<RecycleAllocator> 实例。
+
+fn create_pid_allocator() -> UPSafeCell<RecycleAllocator> {
+
+    unsafe {
+
+        UPSafeCell::new(RecycleAllocator::new())
+    }
+}
+
+/// 创建并返回内核栈分配器的 UPSafeCell<RecycleAllocator> 实例。
+
+fn create_kstack_allocator() -> UPSafeCell<RecycleAllocator> {
+
+    unsafe {
+
+        UPSafeCell::new(RecycleAllocator::new())
+    }
+}
+
 lazy_static! {
-    static ref PID_ALLOCATOR: UPSafeCell<RecycleAllocator> = unsafe {
-
-        UPSafeCell::new(RecycleAllocator::new())
-    };
-    static ref KSTACK_ALLOCATOR: UPSafeCell<RecycleAllocator> = unsafe {
-
-        UPSafeCell::new(RecycleAllocator::new())
-    };
+    static ref PID_ALLOCATOR: UPSafeCell<RecycleAllocator> = create_pid_allocator();
+    static ref KSTACK_ALLOCATOR: UPSafeCell<RecycleAllocator> = create_kstack_allocator();
 }
 
 /// PID 的抽象结构。

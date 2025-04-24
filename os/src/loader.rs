@@ -58,29 +58,49 @@ pub fn get_app_data(app_id: usize) -> &'static [u8] {
     }
 }
 
+/// 构建并返回所有应用名称的 Vec<&'static str>。
+
+fn create_app_names() -> Vec<&'static str> {
+
+    let num_app = get_num_app();
+
+    extern "C" {
+
+        fn _app_names();
+
+    }
+
+    let mut start = _app_names as usize as *const u8;
+
+    let mut v = Vec::new();
+
+    unsafe {
+
+        for _ in 0..num_app {
+
+            let mut end = start;
+
+            while end.read_volatile() != b'\0' {
+
+                end = end.add(1);
+            }
+
+            let slice = core::slice::from_raw_parts(start, end as usize - start as usize);
+
+            let str = core::str::from_utf8(slice).unwrap();
+
+            v.push(str);
+
+            start = end.add(1);
+        }
+    }
+
+    v
+}
+
 lazy_static! {
     /// 所有应用的名称。
-    static ref APP_NAMES: Vec<&'static str> = {
-        let num_app = get_num_app();
-        extern "C" {
-            fn _app_names();
-        }
-        let mut start = _app_names as usize as *const u8;
-        let mut v = Vec::new();
-        unsafe {
-            for _ in 0..num_app {
-                let mut end = start;
-                while end.read_volatile() != b'\0' {
-                    end = end.add(1);
-                }
-                let slice = core::slice::from_raw_parts(start, end as usize - start as usize);
-                let str = core::str::from_utf8(slice).unwrap();
-                v.push(str);
-                start = end.add(1);
-            }
-        }
-        v
-    };
+    static ref APP_NAMES: Vec<&'static str> = create_app_names();
 }
 
 #[allow(unused)]

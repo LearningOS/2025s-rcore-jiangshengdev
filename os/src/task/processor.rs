@@ -73,11 +73,18 @@ impl Processor {
     }
 }
 
-lazy_static! {
-    pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe {
+/// 创建并返回 Processor 的 UPSafeCell<Processor> 实例。
+
+fn create_processor() -> UPSafeCell<Processor> {
+
+    unsafe {
 
         UPSafeCell::new(Processor::new())
-    };
+    }
+}
+
+lazy_static! {
+    pub static ref PROCESSOR: UPSafeCell<Processor> = create_processor();
 }
 
 /// 进程执行与调度的主要部分。

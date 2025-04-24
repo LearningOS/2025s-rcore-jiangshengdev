@@ -37,10 +37,19 @@ extern "C" {
 
 }
 
+/// 创建并返回内核初始内存映射的 UPSafeCell<MemorySet> 实例。
+
+fn create_kernel_space() -> Arc<UPSafeCell<MemorySet>> {
+
+    Arc::new(unsafe {
+
+        UPSafeCell::new(MemorySet::new_kernel())
+    })
+}
+
 lazy_static! {
     /// 内核初始内存映射（内核地址空间）。
-    pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
-        Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
+    pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> = create_kernel_space();
 }
 
 /// 地址空间。

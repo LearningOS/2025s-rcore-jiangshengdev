@@ -132,10 +132,19 @@ impl FrameAllocator for StackFrameAllocator {
 
 type FrameAllocatorImpl = StackFrameAllocator;
 
+/// 创建并返回物理帧分配器的 UPSafeCell 实例。
+
+fn create_frame_allocator() -> UPSafeCell<FrameAllocatorImpl> {
+
+    unsafe {
+
+        UPSafeCell::new(FrameAllocatorImpl::new())
+    }
+}
+
 lazy_static! {
     /// 通过 lazy_static! 创建的帧分配器实例。
-    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
-        unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
+    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> = create_frame_allocator();
 }
 
 /// 使用 `ekernel` 和 `MEMORY_END` 初始化帧分配器。

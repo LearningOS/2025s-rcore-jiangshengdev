@@ -55,10 +55,19 @@ impl TaskManager {
     }
 }
 
+/// 创建并返回 TaskManager 的 UPSafeCell 实例。
+
+fn create_task_manager() -> UPSafeCell<TaskManager> {
+
+    unsafe {
+
+        UPSafeCell::new(TaskManager::new())
+    }
+}
+
 lazy_static! {
     /// 通过 lazy_static! 创建的 TASK_MANAGER 实例。
-    pub static ref TASK_MANAGER: UPSafeCell<TaskManager> =
-        unsafe { UPSafeCell::new(TaskManager::new()) };
+    pub static ref TASK_MANAGER: UPSafeCell<TaskManager> = create_task_manager();
 }
 
 /// 将进程加入就绪队列。

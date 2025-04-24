@@ -136,14 +136,21 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     }
 }
 
+/// 创建并返回初始进程的 TaskControlBlock 实例
+
+fn create_initproc() -> Arc<TaskControlBlock> {
+
+    Arc::new(TaskControlBlock::new(
+        get_app_data_by_name("ch5b_initproc").unwrap(),
+    ))
+}
+
 lazy_static! {
     /// 初始进程的创建。
     ///
     /// 名称 "initproc" 可更改为其他应用名如 "usertests"，
     /// 但我们有 user_shell，无需更改。
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(TaskControlBlock::new(
-        get_app_data_by_name("ch5b_initproc").unwrap()
-    ));
+    pub static ref INITPROC: Arc<TaskControlBlock> = create_initproc();
 }
 
 /// 添加初始进程到管理器。
