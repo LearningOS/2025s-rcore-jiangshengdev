@@ -57,7 +57,8 @@ lazy_static! {
 /// * `task` - 要加入的任务。
 pub fn add_task(task: Arc<TaskControlBlock>) {
     //trace!("kernel: TaskManager::add_task");
-    TASK_MANAGER.exclusive_access().add(task);
+    let mut task_manager = TASK_MANAGER.exclusive_access();
+    task_manager.add(task);
 }
 
 /// 从就绪队列取出一个进程。
@@ -66,5 +67,6 @@ pub fn add_task(task: Arc<TaskControlBlock>) {
 /// 取出的任务（可选）。
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     //trace!("kernel: TaskManager::fetch_task");
-    TASK_MANAGER.exclusive_access().fetch()
+    let mut task_manager = TASK_MANAGER.exclusive_access();
+    task_manager.fetch()
 }

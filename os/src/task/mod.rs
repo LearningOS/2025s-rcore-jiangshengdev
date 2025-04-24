@@ -88,7 +88,8 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
         for child in inner.children.iter() {
             child.inner_exclusive_access().parent = Some(Arc::downgrade(&INITPROC));
-            initproc_inner.children.push(child.clone());
+            let cc = child.clone();
+            initproc_inner.children.push(cc);
         }
     }
     // ++++++ 释放父 PCB
@@ -119,5 +120,6 @@ lazy_static! {
 
 /// 添加初始进程到管理器。
 pub fn add_initproc() {
-    add_task(INITPROC.clone());
+    let task = INITPROC.clone();
+    add_task(task);
 }
