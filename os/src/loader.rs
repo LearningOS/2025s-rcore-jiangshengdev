@@ -7,12 +7,19 @@ use lazy_static::*;
 ///
 /// # 返回
 /// 应用的数量。
+
 pub fn get_num_app() -> usize {
+
     extern "C" {
+
         fn _num_app();
+
     }
 
-    unsafe { (_num_app as usize as *const usize).read_volatile() }
+    unsafe {
+
+        (_num_app as usize as *const usize).read_volatile()
+    }
 }
 
 /// 获取指定应用的数据。
@@ -22,16 +29,28 @@ pub fn get_num_app() -> usize {
 ///
 /// # 返回
 /// 指定应用的二进制数据切片。
+
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
+
     extern "C" {
+
         fn _num_app();
+
     }
+
     let num_app_ptr = _num_app as usize as *const usize;
+
     let num_app = get_num_app();
-    let app_start = unsafe { core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1) };
+
+    let app_start = unsafe {
+
+        core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1)
+    };
+
     assert!(app_id < num_app);
 
     unsafe {
+
         core::slice::from_raw_parts(
             app_start[app_id] as *const u8,
             app_start[app_id + 1] - app_start[app_id],
@@ -72,18 +91,24 @@ lazy_static! {
 ///
 /// # 返回
 /// 若找到则返回应用数据切片，否则为 None。
+
 pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
+
     let num_app = get_num_app();
+
     (0..num_app)
         .find(|&i| APP_NAMES[i] == name)
         .map(get_app_data)
 }
 
 /// 列出所有应用。
+
 pub fn list_apps() {
+
     println!("/**** APPS ****");
 
     for app in APP_NAMES.iter() {
+
         println!("{}", app);
     }
 

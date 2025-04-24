@@ -20,13 +20,17 @@
 #![feature(alloc_error_handler)]
 
 extern crate alloc;
+
 #[macro_use]
 extern crate bitflags;
+
 #[macro_use]
 extern crate log;
 
 #[macro_use]
+
 mod console;
+
 pub mod config;
 pub mod lang_items;
 mod loader;
@@ -49,21 +53,30 @@ global_asm!(include_str!("link_app.S"));
 ///
 /// # Safety
 /// 该函数会修改内存中的 BSS 段。
+
 fn clear_bss() {
+
     extern "C" {
+
         fn sbss();
+
         fn ebss();
+
     }
 
     unsafe {
+
         core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
             .fill(0);
     }
 }
 
 /// 内核日志信息。
+
 fn kernel_log_info() {
+
     extern "C" {
+
         fn stext(); // .text 段起始地址
         fn etext(); // .text 段结束地址
         fn srodata(); // 只读数据段起始地址
@@ -75,25 +88,32 @@ fn kernel_log_info() {
         fn boot_stack_lower_bound(); // 启动栈底
         fn boot_stack_top(); // 启动栈顶
     }
+
     logging::init();
+
     println!("[kernel] Hello, world!");
+
     trace!(
         "[kernel] .text [{:#x}, {:#x})",
         stext as usize,
         etext as usize
     );
+
     debug!(
         "[kernel] .rodata [{:#x}, {:#x})",
         srodata as usize, erodata as usize
     );
+
     info!(
         "[kernel] .data [{:#x}, {:#x})",
         sdata as usize, edata as usize
     );
+
     warn!(
         "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
+
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 }
 
@@ -102,17 +122,30 @@ fn kernel_log_info() {
 ///
 /// # 返回
 /// 永不返回（发散函数），内核主流程。
+
 pub fn rust_main() -> ! {
+
     clear_bss();
+
     kernel_log_info();
+
     mm::init();
+
     mm::remap_test();
+
     task::add_initproc();
+
     println!("after initproc!");
+
     trap::init();
+
     trap::enable_timer_interrupt();
+
     timer::set_next_trigger();
+
     loader::list_apps();
+
     task::run_tasks();
+
     panic!("Unreachable in rust_main!");
 }

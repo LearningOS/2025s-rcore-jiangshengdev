@@ -23,10 +23,13 @@ const SBI_SHUTDOWN: usize = 8;
 /// # 返回值
 /// sbi 调用返回值。
 #[inline(always)]
+
 fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
+
     let mut ret;
 
     unsafe {
+
         asm!(
             "ecall",
             inlateout("x10") arg0 => ret,
@@ -44,7 +47,9 @@ fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
 ///
 /// # 参数
 /// * `timer` - 定时器时钟周期数。
+
 pub fn set_timer(timer: usize) {
+
     sbi_call(SBI_SET_TIMER, timer, 0, 0);
 }
 
@@ -52,7 +57,9 @@ pub fn set_timer(timer: usize) {
 ///
 /// # 参数
 /// * `c` - 字符。
+
 pub fn console_putchar(c: usize) {
+
     sbi_call(SBI_CONSOLE_PUTCHAR, c, 0, 0);
 }
 
@@ -60,7 +67,9 @@ pub fn console_putchar(c: usize) {
 ///
 /// # 返回值
 /// 获取到的字符。
+
 pub fn console_getchar() -> usize {
+
     sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0)
 }
 
@@ -68,7 +77,10 @@ pub fn console_getchar() -> usize {
 ///
 /// # 返回值
 /// 不返回，直接关闭。
+
 pub fn shutdown() -> ! {
+
     sbi_call(SBI_SHUTDOWN, 0, 0, 0);
+
     panic!("It should shutdown!");
 }

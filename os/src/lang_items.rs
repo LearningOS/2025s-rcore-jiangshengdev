@@ -11,8 +11,11 @@ use core::panic::PanicInfo;
 ///
 /// # 返回
 /// 永不返回（发散函数）。
+
 fn panic(info: &PanicInfo) -> ! {
+
     if let Some(location) = info.location() {
+
         println!(
             "[kernel] Panicked at {}:{} {}",
             location.file(),
@@ -20,6 +23,7 @@ fn panic(info: &PanicInfo) -> ! {
             info.message().unwrap()
         );
     } else {
+
         println!("[kernel] Panicked: {}", info.message().unwrap());
     }
 

@@ -24,25 +24,34 @@ use riscv::register::{
 global_asm!(include_str!("trap.S"));
 
 /// 初始化 trap 处理。
+
 pub fn init() {
+
     set_kernel_trap_entry();
 }
 
 fn set_kernel_trap_entry() {
+
     unsafe {
+
         stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
 }
 
 fn set_user_trap_entry() {
+
     unsafe {
+
         stvec::write(TRAMPOLINE, TrapMode::Direct);
     }
 }
 
 /// 使能管态定时器中断。
+
 pub fn enable_timer_interrupt() {
+
     unsafe {
+
         sie::set_stimer();
     }
 }
@@ -52,20 +61,30 @@ pub fn enable_timer_interrupt() {
 /// # 返回
 /// 永不返回（发散函数）。
 #[no_mangle]
+
 pub fn trap_handler() -> ! {
+
     set_kernel_trap_entry();
+
     let scause = scause::read();
+
     let stval = stval::read();
+
     // trace!("into {:?}", scause.cause());
     match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
+
             // 无论如何跳到下一条指令
             let mut cx = current_trap_cx();
+
             cx.sepc += 4;
+
             // 获取系统调用返回值
             let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]);
+
             // sys_exec 可能改变 cx，需重新获取
             cx = current_trap_cx();
+
             cx.x[10] = result as usize;
         }
         Trap::Exception(Exception::StoreFault)
@@ -74,25 +93,32 @@ pub fn trap_handler() -> ! {
         | Trap::Exception(Exception::InstructionPageFault)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
+
             println!(
                 "[kernel] trap_handler:  {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
                 scause.cause(),
                 stval,
                 current_trap_cx().sepc,
             );
+
             // 页错误退出码
             exit_current_and_run_next(-2);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
+
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
+
             // 非法指令退出码
             exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
+
             set_next_trigger();
+
             suspend_current_and_run_next();
         }
         _ => {
+
             panic!(
                 "Unsupported trap {:?}, stval = {:#x}!",
                 scause.cause(),
@@ -100,6 +126,7 @@ pub fn trap_handler() -> ! {
             );
         }
     }
+
     //println!("before trap_return");
     trap_return();
 }
@@ -112,17 +139,28 @@ pub fn trap_handler() -> ! {
 ///
 /// # 返回
 /// 永不返回（发散函数）。
+
 pub fn trap_return() -> ! {
+
     set_user_trap_entry();
+
     let trap_cx_ptr = TRAP_CONTEXT_BASE;
+
     let user_satp = current_user_token();
+
     extern "C" {
+
         fn __alltraps();
+
         fn __restore();
+
     }
+
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
+
     // trace!("[kernel] trap_return: ..before return");
     unsafe {
+
         asm!(
             "fence.i",
             "jr {restore_va}",         // 跳转到 __restore 汇编函数新地址
@@ -141,9 +179,13 @@ pub fn trap_return() -> ! {
 ///
 /// # 返回
 /// 永不返回（发散函数）。
+
 pub fn trap_from_kernel() -> ! {
+
     use riscv::register::sepc;
+
     trace!("stval = {:#x}, sepc = {:#x}", stval::read(), sepc::read());
+
     panic!("a trap {:?} from kernel!", scause::read().cause());
 }
 
