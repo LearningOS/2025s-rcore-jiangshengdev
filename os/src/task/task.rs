@@ -245,7 +245,10 @@ impl TaskControlBlock {
         inner.base_size = user_sp;
 
         // 更换进程名
-        inner.name = name;
+        inner.name.clone_from(&name);
+
+        // 同步更新 task_cx 的 name 字段，保证调度日志正确
+        inner.task_cx.set_name(&name);
 
         // 初始化 trap_cx
         let trap_cx = inner.get_trap_cx();

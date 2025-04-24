@@ -131,7 +131,11 @@ pub fn run_tasks() {
                 (*next_task_cx_ptr).debug_name()
             };
 
-            // println!("[run_tasks] __switch: idle -> next, idle_name: {}, next_name: {}", idle_name, next_name);
+            println!(
+                "[run_tasks] __switch: idle -> next, idle_name: {}, next_name: {}",
+                idle_name, next_name
+            );
+
             consume(idle_name);
 
             consume(next_name);
@@ -215,7 +219,10 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
 
     let idle_name = (*idle_task_cx_ptr).debug_name();
 
-    // println!("[schedule] __switch: switched -> idle, switched_name: {}, idle_name: {}", switched_name, idle_name);
+    println!(
+        "[schedule] __switch: switched -> idle, switched_name: {}, idle_name: {}",
+        switched_name, idle_name
+    );
 
     consume(switched_name);
 

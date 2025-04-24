@@ -98,6 +98,9 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     // 记录退出码
     inner.exit_code = exit_code;
 
+    // 保存任务名称
+    let task_name = inner.name.clone();
+
     // 不移动到父进程而是挂到 initproc 下
 
     // ++++++ 独占访问 initproc TCB
@@ -129,7 +132,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     drop(task);
 
     // 不需要保存任务上下文
-    let mut _unused = TaskContext::zero_init("_unused");
+    let mut _unused = TaskContext::zero_init(&task_name);
 
     unsafe {
 

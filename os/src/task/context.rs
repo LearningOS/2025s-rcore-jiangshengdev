@@ -17,6 +17,21 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
+    /// 将字符串转为定长名称缓冲区
+
+    fn make_name_buf(name: &str) -> [u8; 24] {
+
+        let mut buf = [0u8; 24];
+
+        let bytes = name.as_bytes();
+
+        let len = bytes.len().min(buf.len() - 1);
+
+        buf[..len].copy_from_slice(&bytes[..len]);
+
+        buf
+    }
+
     /// 创建一个全零的任务上下文。
     ///
     /// # 参数
@@ -27,13 +42,7 @@ impl TaskContext {
 
     pub fn zero_init(name: &str) -> Self {
 
-        let mut name_buf = [0u8; 24];
-
-        let bytes = name.as_bytes();
-
-        let len = bytes.len().min(23);
-
-        name_buf[..len].copy_from_slice(&bytes[..len]);
+        let name_buf = Self::make_name_buf(name);
 
         Self {
             ra: 0,
@@ -54,13 +63,7 @@ impl TaskContext {
 
     pub fn goto_trap_return(kstack_ptr: usize, name: &str) -> Self {
 
-        let mut name_buf = [0u8; 24];
-
-        let bytes = name.as_bytes();
-
-        let len = bytes.len().min(23);
-
-        name_buf[..len].copy_from_slice(&bytes[..len]);
+        let name_buf = Self::make_name_buf(name);
 
         Self {
             ra: trap_return as usize,
@@ -84,5 +87,12 @@ impl TaskContext {
             .unwrap_or(self.name.len());
 
         core::str::from_utf8(&self.name[..nul_pos]).unwrap_or("")
+    }
+
+    /// 更新任务调度时显示的名称
+
+    pub fn set_name(&mut self, name: &str) {
+
+        self.name = Self::make_name_buf(name);
     }
 }
