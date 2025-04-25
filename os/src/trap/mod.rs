@@ -162,12 +162,12 @@ pub fn trap_return() -> ! {
     unsafe {
 
         asm!(
-            "fence.i",
-            "jr {restore_va}",         // 跳转到 __restore 汇编函数新地址
-            restore_va = in(reg) restore_va,
-            in("a0") trap_cx_ptr,      // a0 = Trap Context 虚拟地址
-            in("a1") user_satp,        // a1 = 用户页表物理地址
-            options(noreturn)
+        "fence.i",
+        "jr {restore_va}",         // 跳转到 __restore 汇编函数新地址
+        restore_va = in(reg) restore_va,
+        in("a0") trap_cx_ptr,      // a0 = Trap Context 虚拟地址
+        in("a1") user_satp,        // a1 = 用户页表物理地址
+        options(noreturn)
         )
     }
 }

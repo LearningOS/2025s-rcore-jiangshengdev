@@ -116,7 +116,7 @@ impl TaskManager {
 
         print_color!(crate::console::color::GREEN, "[Add] Enqueue: ");
 
-        crate::task::manager::print_task_brief(pid, &name);
+        print_task_brief(pid, &name);
 
         println!();
 
@@ -156,7 +156,7 @@ impl TaskManager {
 
             print_color!(crate::console::color::RED, "[Fetch] Dequeue: ");
 
-            crate::task::manager::print_task_brief(pid, &name);
+            print_task_brief(pid, &name);
 
             println!();
         } else {

@@ -196,7 +196,7 @@ macro_rules! println_rgb {
 /// 使用 RGB 背景色输出内容（24 位真彩色）。
 #[allow(dead_code)]
 
-pub fn print_bg_rgb(r: u8, g: u8, b: u8, args: ::core::fmt::Arguments) {
+pub fn print_bg_rgb(r: u8, g: u8, b: u8, args: fmt::Arguments) {
 
     print!("\u{1B}[48;2;{};{};{}m", r, g, b);
 
