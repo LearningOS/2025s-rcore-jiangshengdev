@@ -42,7 +42,7 @@ impl Processor {
 
         Self {
             current: None,
-            idle_task_cx: TaskContext::zero_init("idle"),
+            idle_task_cx: TaskContext::zero_init("idle", usize::MAX),
         }
     }
 
@@ -119,59 +119,57 @@ pub fn run_tasks() {
 
             unsafe {
 
-                (*(next_task_cx_ptr as *mut TaskContext)).set_name(task_inner.name.as_str());
+                (*(next_task_cx_ptr as *mut TaskContext))
+                    .set_name_pid(task_inner.name.as_str(), task.pid.0);
             }
 
             // 手动释放 task_inner
             drop(task_inner);
 
             // 手动释放 task TCB
-            processor.current = Some(task);
+            processor.current = Some(task.clone());
 
             // 手动释放 processor
             drop(processor);
 
-            // 打印切换前后任务名
+            // 获取 idle/next 任务名和 pid
             let idle_name = unsafe {
 
                 (*idle_task_cx_ptr).debug_name()
             };
 
-            let next_name = unsafe {
+            let idle_pid = unsafe {
 
-                (*next_task_cx_ptr).debug_name()
+                (*idle_task_cx_ptr).debug_pid()
             };
 
-            // 格式化为定长字段，保证对齐
-            println!("");
+            let next_pid = task.pid.0;
+
+            let next_name = {
+
+                let inner = task.inner_exclusive_access();
+
+                inner.name.clone()
+            };
+
+            // 打印切换前后任务名和pid，统一风格
+            println!();
 
             let tag = format!("{:<13}", "[run_tasks]");
 
-            let idle_label = format!("{:<8}", "idle");
+            print_color!(crate::console::color::YELLOW, "{}  ", tag);
 
-            let next_label = format!("{:<8}", "next");
+            print_color!(crate::console::color::BLUE, "idle: ");
 
-            let idle_name_fmt = format!("{:<21}", idle_name);
-
-            let next_name_fmt = format!("{:<21}", next_name);
-
-            print_color!(crate::console::color::YELLOW, "{}", tag);
-
-            print!("  ");
-
-            print_color!(crate::console::color::BLUE, "{}", idle_label);
-
-            print!(": ");
-
-            print_color!(crate::console::color::BLUE, "{}", idle_name_fmt);
+            crate::task::manager::print_task_brief(idle_pid, idle_name);
 
             print!("\t -> \t");
 
-            print_color!(crate::console::color::GREEN, "{}", next_label);
+            print_color!(crate::console::color::GREEN, "next: ");
 
-            print!(": ");
+            crate::task::manager::print_task_brief(next_pid, next_name.as_str());
 
-            print_color!(crate::console::color::GREEN, "{}\n", next_name_fmt);
+            println!();
 
             consume(idle_name);
 
@@ -238,7 +236,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 /// 返回到 idle 控制流以进行新一轮调度。
 ///
 /// # 参数
-/// * `switched_task_cx_ptr` - 被切换出去的任务上下文指针。
+/// * `switched_task_cx_ptr` - 被切换出去的任务上下文指针.
 ///
 /// # Safety
 /// 该函数会解引用传入的裸指针，调用者需保证指针有效。
@@ -251,41 +249,35 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
 
     drop(processor);
 
-    // 打印切换前后任务名
+    // 打印切换前后任务名和pid，统一风格
     let switched_name = (*switched_task_cx_ptr).debug_name();
+
+    let switched_pid = (*switched_task_cx_ptr).debug_pid();
 
     let idle_name = (*idle_task_cx_ptr).debug_name();
 
+    let idle_pid = (*idle_task_cx_ptr).debug_pid();
+
     // 格式化为定长字段，保证对齐
-    println!("");
+    println!();
 
     let tag = format!("{:<13}", "[schedule]");
 
-    let switched_label = format!("{:<8}", "switched");
+    print_color!(crate::console::color::YELLOW, "{}  ", tag);
 
-    let idle_label = format!("{:<8}", "idle");
+    print_color!(crate::console::color::BRIGHT_BLACK, "switched: ");
 
-    let switched_name_fmt = format!("{:<21}", switched_name);
-
-    let idle_name_fmt = format!("{:<21}", idle_name);
-
-    print_color!(crate::console::color::YELLOW, "{}", tag);
-
-    print!("  ");
-
-    print_color!(crate::console::color::BRIGHT_BLACK, "{}", switched_label);
-
-    print!(": ");
-
-    print_color!(crate::console::color::BRIGHT_BLACK, "{}", switched_name_fmt);
+    crate::task::manager::print_task_brief(switched_pid, switched_name);
 
     print!("\t -> \t");
 
-    print_color!(crate::console::color::BLUE, "{}", idle_label);
+    print_color!(crate::console::color::BLUE, "idle: ");
 
-    print!(": ");
+    crate::task::manager::print_task_brief(idle_pid, idle_name);
 
-    print_color!(crate::console::color::BLUE, "{}\n", idle_name_fmt);
+    println!();
+
+    println!();
 
     consume(switched_name);
 

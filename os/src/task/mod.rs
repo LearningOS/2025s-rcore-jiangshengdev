@@ -132,7 +132,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     drop(task);
 
     // 不需要保存任务上下文
-    let mut _unused = TaskContext::zero_init(&task_name);
+    let mut _unused = TaskContext::zero_init(&task_name, pid);
 
     unsafe {
 

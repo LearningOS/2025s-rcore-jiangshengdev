@@ -14,6 +14,8 @@ pub struct TaskContext {
     s: [usize; 12],
     /// 任务名称。
     name: [u8; 24],
+    /// 任务 pid。
+    pid: usize,
 }
 
 impl TaskContext {
@@ -36,11 +38,12 @@ impl TaskContext {
     ///
     /// # 参数
     /// * `name` - 任务名称。
+    /// * `pid` - 任务 pid。
     ///
     /// # 返回值
     /// 返回全零的 TaskContext。
 
-    pub fn zero_init(name: &str) -> Self {
+    pub fn zero_init(name: &str, pid: usize) -> Self {
 
         let name_buf = Self::make_name_buf(name);
 
@@ -49,6 +52,7 @@ impl TaskContext {
             sp: 0,
             s: [0; 12],
             name: name_buf,
+            pid,
         }
     }
 
@@ -57,11 +61,12 @@ impl TaskContext {
     /// # 参数
     /// * `kstack_ptr` - 内核栈指针。
     /// * `name` - 任务名称。
+    /// * `pid` - 任务 pid。
     ///
     /// # 返回值
     /// 返回新的 TaskContext。
 
-    pub fn goto_trap_return(kstack_ptr: usize, name: &str) -> Self {
+    pub fn goto_trap_return(kstack_ptr: usize, name: &str, pid: usize) -> Self {
 
         let name_buf = Self::make_name_buf(name);
 
@@ -70,6 +75,7 @@ impl TaskContext {
             sp: kstack_ptr,
             s: [0; 12],
             name: name_buf,
+            pid,
         }
     }
 
@@ -89,10 +95,26 @@ impl TaskContext {
         core::str::from_utf8(&self.name[..nul_pos]).unwrap_or("")
     }
 
+    /// 获取任务 pid。
+
+    pub fn debug_pid(&self) -> usize {
+
+        self.pid
+    }
+
     /// 更新任务调度时显示的名称
 
     pub fn set_name(&mut self, name: &str) {
 
         self.name = Self::make_name_buf(name);
+    }
+
+    /// 更新任务调度时显示的名称和 pid
+
+    pub fn set_name_pid(&mut self, name: &str, pid: usize) {
+
+        self.name = Self::make_name_buf(name);
+
+        self.pid = pid;
     }
 }

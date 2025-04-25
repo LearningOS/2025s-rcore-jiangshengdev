@@ -4,6 +4,8 @@ use super::TaskControlBlock;
 use crate::console::named_color;
 use crate::sync::UPSafeCell;
 use alloc::collections::{BTreeMap, VecDeque};
+use alloc::format;
+use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
@@ -104,9 +106,19 @@ impl TaskManager {
 
         println!();
 
-        let name = task.inner_exclusive_access().name.clone();
+        let inner = task.inner_exclusive_access();
 
-        print_color!(crate::console::color::GREEN, "[Add] Enqueue: {}\n", name);
+        let name = inner.name.clone();
+
+        let pid = task.pid.0;
+
+        drop(inner);
+
+        print_color!(crate::console::color::GREEN, "[Add] Enqueue: ");
+
+        crate::task::manager::print_task_brief(pid, &name);
+
+        println!();
 
         self.ready_queue.push_back(task);
 
@@ -134,9 +146,19 @@ impl TaskManager {
 
         if let Some(ref t) = task {
 
-            let name = t.inner_exclusive_access().name.clone();
+            let inner = t.inner_exclusive_access();
 
-            print_color!(crate::console::color::RED, "[Fetch] Dequeue: {}\n", name);
+            let name = inner.name.clone();
+
+            let pid = t.pid.0;
+
+            drop(inner);
+
+            print_color!(crate::console::color::RED, "[Fetch] Dequeue: ");
+
+            crate::task::manager::print_task_brief(pid, &name);
+
+            println!();
         } else {
 
             println!("[Fetch] Dequeue: None");
@@ -190,6 +212,14 @@ impl TaskManager {
 
             let base_name = name.trim_end_matches('$');
 
+            let pid_str = if *pid == usize::MAX {
+
+                "-1".to_string()
+            } else {
+
+                pid.to_string()
+            };
+
             if let Some(&color) = color_map.get(base_name) {
 
                 if name.contains('$') {
@@ -198,14 +228,14 @@ impl TaskManager {
 
                     let (r, g, b) = (r / 2, g / 2, b / 2);
 
-                    print_bg_rgb!((r, g, b), "[{}] {}", pid, name);
+                    print_bg_rgb!((r, g, b), "[{}] {}", pid_str, name);
                 } else {
 
-                    print_bg_named_rgb!(color, "[{}] {}", pid, name);
+                    print_bg_named_rgb!(color, "[{}] {}", pid_str, name);
                 }
             } else {
 
-                print_color!(crate::console::color::RESET, "[{}] {}", pid, name);
+                print_color!(crate::console::color::RESET, "[{}] {}", pid_str, name);
             }
         }
 
@@ -255,4 +285,41 @@ pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     let mut task_manager = TASK_MANAGER.exclusive_access();
 
     task_manager.fetch()
+}
+
+/// 按统一风格打印单个任务的 [pid] name，带背景色
+
+pub fn print_task_brief(pid: usize, name: &str) {
+
+    let color_map = app_name_color_map();
+
+    let base_name = name.trim_end_matches('$');
+
+    let pid_str = if pid == usize::MAX {
+
+        "-1"
+    } else {
+
+        // 避免分配，直接格式化
+        // 这里用 format! 兼容性更好
+        &format!("{}", pid)
+    };
+
+    if let Some(&color) = color_map.get(base_name) {
+
+        if name.contains('$') {
+
+            let (r, g, b) = color;
+
+            let (r, g, b) = (r / 2, g / 2, b / 2);
+
+            print_bg_rgb!((r, g, b), "[{}] {}", pid_str, name);
+        } else {
+
+            print_bg_named_rgb!(color, "[{}] {}", pid_str, name);
+        }
+    } else {
+
+        print_color!(crate::console::color::RESET, "[{}] {}", pid_str, name);
+    }
 }

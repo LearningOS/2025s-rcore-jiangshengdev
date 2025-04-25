@@ -162,7 +162,7 @@ impl TaskControlBlock {
         // 将进入 trap_return 的任务上下文压入内核栈顶
         let inner = unsafe {
 
-            let task_cx = TaskContext::goto_trap_return(kernel_stack_top, &name);
+            let task_cx = TaskContext::goto_trap_return(kernel_stack_top, &name, pid_handle.0);
 
             let children = Vec::new();
 
@@ -285,6 +285,8 @@ impl TaskControlBlock {
         // 在内核空间分配 pid 和内核栈
         let pid_handle = pid_alloc();
 
+        let pid = pid_handle.0;
+
         let kernel_stack = kstack_alloc();
 
         let kernel_stack_top = kernel_stack.get_top();
@@ -299,7 +301,7 @@ impl TaskControlBlock {
                 UPSafeCell::new(TaskControlBlockInner {
                     trap_cx_ppn,
                     base_size: parent_inner.base_size,
-                    task_cx: TaskContext::goto_trap_return(kernel_stack_top, &name),
+                    task_cx: TaskContext::goto_trap_return(kernel_stack_top, &name, pid),
                     task_status: TaskStatus::Ready,
                     memory_set,
                     parent: Some(Arc::downgrade(self)),
