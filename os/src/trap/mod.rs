@@ -14,7 +14,10 @@ use crate::task::{
     current_trap_cx, current_user_token, exit_current_and_run_next, suspend_current_and_run_next,
 };
 use crate::timer::set_next_trigger;
+use crate::utils::do_nothing;
+pub use context::TrapContext;
 use core::arch::{asm, global_asm};
+use riscv::register::sepc;
 use riscv::register::{
     mtvec::TrapMode,
     scause::{self, Exception, Interrupt, Trap},
@@ -86,6 +89,8 @@ pub fn trap_handler() -> ! {
             cx = current_trap_cx();
 
             cx.x[10] = result as usize;
+
+            do_nothing();
         }
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault)
@@ -182,11 +187,7 @@ pub fn trap_return() -> ! {
 
 pub fn trap_from_kernel() -> ! {
 
-    use riscv::register::sepc;
-
     trace!("stval = {:#x}, sepc = {:#x}", stval::read(), sepc::read());
 
     panic!("a trap {:?} from kernel!", scause::read().cause());
 }
-
-pub use context::TrapContext;

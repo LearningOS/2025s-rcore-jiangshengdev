@@ -171,9 +171,9 @@ pub fn run_tasks() {
 
             println!();
 
-            consume(idle_name);
+            consume(&idle_name);
 
-            consume(next_name);
+            consume(&next_name);
 
             unsafe {
 
@@ -279,9 +279,9 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
 
     println!();
 
-    consume(switched_name);
+    consume(&switched_name);
 
-    consume(idle_name);
+    consume(&idle_name);
 
     __switch(switched_task_cx_ptr, idle_task_cx_ptr);
 
