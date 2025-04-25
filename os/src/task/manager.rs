@@ -10,6 +10,12 @@ pub struct TaskManager {
 }
 
 /// A simple FIFO scheduler.
+impl Default for TaskManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskManager {
     ///Creat an empty TaskManager
     pub fn new() -> Self {
