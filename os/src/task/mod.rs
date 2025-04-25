@@ -14,6 +14,7 @@
 //! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
 //! might not be what you expect.
 mod context;
+pub(crate) mod forktree;
 mod id;
 mod manager;
 mod processor;
@@ -100,6 +101,8 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     drop(task);
     // we do not have to save task context
     let mut _unused = TaskContext::zero_init();
+    println!("[exit后] Fork Tree:");
+    forktree::print_fork_tree();
     unsafe {
         schedule(&mut _unused as *mut _);
     }

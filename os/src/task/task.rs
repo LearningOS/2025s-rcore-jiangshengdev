@@ -39,35 +39,28 @@ impl TaskControlBlock {
 pub struct TaskControlBlockInner {
     /// The physical page number of the frame where the trap context is placed
     pub trap_cx_ppn: PhysPageNum,
-
     /// Application data can only appear in areas
     /// where the application address space is lower than base_size
     pub base_size: usize,
-
     /// Save task context
     pub task_cx: TaskContext,
-
     /// Maintain the execution status of the current process
     pub task_status: TaskStatus,
-
     /// Application address space
     pub memory_set: MemorySet,
-
     /// Parent process of the current process.
     /// Weak will not affect the reference count of the parent
     pub parent: Option<Weak<TaskControlBlock>>,
-
     /// A vector containing TCBs of all child processes of the current process
     pub children: Vec<Arc<TaskControlBlock>>,
-
     /// It is set when active exit or execution error occurs
     pub exit_code: i32,
-
     /// Heap bottom
     pub heap_bottom: usize,
-
     /// Program break
     pub program_brk: usize,
+    /// Process name
+    pub name: alloc::string::String,
 }
 
 impl TaskControlBlockInner {
@@ -118,6 +111,7 @@ impl TaskControlBlock {
                     exit_code: 0,
                     heap_bottom: user_sp,
                     program_brk: user_sp,
+                    name: alloc::string::String::from("initproc"), // 新增
                 })
             },
         };
@@ -134,7 +128,7 @@ impl TaskControlBlock {
     }
 
     /// Load a new elf to replace the original application address space and start execution
-    pub fn exec(&self, elf_data: &[u8]) {
+    pub fn exec(&self, elf_data: &[u8], path: &str) {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
@@ -162,6 +156,8 @@ impl TaskControlBlock {
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
+        // exec 时更新 name
+        inner.name = alloc::string::String::from(path);
         // **** release inner automatically
     }
 
@@ -194,6 +190,11 @@ impl TaskControlBlock {
                     exit_code: 0,
                     heap_bottom: parent_inner.heap_bottom,
                     program_brk: parent_inner.program_brk,
+                    name: {
+                        let mut s = parent_inner.name.clone();
+                        s.push('$');
+                        s
+                    }, // fork 时在父进程名后添加 `$` 后缀
                 })
             },
         });

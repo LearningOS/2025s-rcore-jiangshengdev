@@ -5,7 +5,11 @@ use crate::{
     loader::get_app_data_by_name,
     mm::{translated_refmut, translated_str},
     task::{
-        add_task, current_task, current_user_token, exit_current_and_run_next,
+        add_task,
+        current_task,
+        current_user_token,
+        exit_current_and_run_next,
+        forktree::print_fork_tree, // 新增
         suspend_current_and_run_next,
     },
 };
@@ -20,6 +24,8 @@ pub struct TimeVal {
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
     trace!("kernel:pid[{}] sys_exit", current_task().unwrap().pid.0);
+    println!("[exit前] Fork Tree:");
+    print_fork_tree();
     exit_current_and_run_next(exit_code);
     panic!("Unreachable in sys_exit!");
 }
@@ -38,6 +44,8 @@ pub fn sys_getpid() -> isize {
 
 pub fn sys_fork() -> isize {
     trace!("kernel:pid[{}] sys_fork", current_task().unwrap().pid.0);
+    println!("[fork前] Fork Tree:");
+    print_fork_tree();
     let current_task = current_task().unwrap();
     let new_task = current_task.fork();
     let new_pid = new_task.pid.0;
@@ -48,16 +56,22 @@ pub fn sys_fork() -> isize {
     trap_cx.x[10] = 0;
     // add new task to scheduler
     add_task(new_task);
+    println!("[fork后] Fork Tree:");
+    print_fork_tree();
     new_pid as isize
 }
 
 pub fn sys_exec(path: *const u8) -> isize {
     trace!("kernel:pid[{}] sys_exec", current_task().unwrap().pid.0);
+    println!("[exec前] Fork Tree:");
+    print_fork_tree();
     let token = current_user_token();
     let path = translated_str(token, path);
     if let Some(data) = get_app_data_by_name(path.as_str()) {
         let task = current_task().unwrap();
-        task.exec(data);
+        task.exec(data, path.as_str());
+        println!("[exec后] Fork Tree:");
+        print_fork_tree();
         0
     } else {
         -1
