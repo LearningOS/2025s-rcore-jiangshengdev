@@ -224,9 +224,7 @@ impl TaskManager {
 
                 if name.contains('$') {
 
-                    let (r, g, b) = color;
-
-                    let (r, g, b) = (r / 2, g / 2, b / 2);
+                    let (r, g, b) = lighten_color(color);
 
                     print_bg_rgb!((r, g, b), "[{}] {}", pid_str, name);
                 } else {
@@ -243,6 +241,17 @@ impl TaskManager {
 
         print_color!(tail_color, "{}\n", tail_label);
     }
+}
+
+/// 让颜色变淡：与 255 做均值
+
+fn lighten_color(color: (u8, u8, u8)) -> (u8, u8, u8) {
+
+    (
+        ((color.0 as u16 + 255) / 2) as u8,
+        ((color.1 as u16 + 255) / 2) as u8,
+        ((color.2 as u16 + 255) / 2) as u8,
+    )
 }
 
 /// 创建并返回 TaskManager 的 UPSafeCell 实例。
@@ -309,9 +318,7 @@ pub fn print_task_brief(pid: usize, name: &str) {
 
         if name.contains('$') {
 
-            let (r, g, b) = color;
-
-            let (r, g, b) = (r / 2, g / 2, b / 2);
+            let (r, g, b) = lighten_color(color);
 
             print_bg_rgb!((r, g, b), "[{}] {}", pid_str, name);
         } else {
