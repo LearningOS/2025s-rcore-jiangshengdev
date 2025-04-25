@@ -1,7 +1,6 @@
 //! 进程管理相关系统调用。
 
-use alloc::sync::Arc;
-
+use crate::task::manager::print_task_brief;
 use crate::{
     loader::get_app_data_by_name,
     mm::{translated_refmut, translated_str},
@@ -10,6 +9,7 @@ use crate::{
         suspend_current_and_run_next,
     },
 };
+use alloc::sync::Arc;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -73,9 +73,15 @@ pub fn sys_fork() -> isize {
 
     let current_task = current_task().unwrap();
 
+    let parent_pid = current_task.pid.0;
+
+    let parent_name = current_task.inner_exclusive_access().name.clone();
+
     let new_task = current_task.fork();
 
     let new_pid = new_task.pid.0;
+
+    let new_name = new_task.inner_exclusive_access().name.clone();
 
     // 修改新任务的 trap context，因为切换后会立即返回
     let trap_cx = new_task.inner_exclusive_access().get_trap_cx();
@@ -85,6 +91,19 @@ pub fn sys_fork() -> isize {
 
     // 添加新任务到调度器
     add_task(new_task);
+
+    // 打印 fork 日志
+    println!();
+
+    print_color!(crate::console::color::CYAN, "fork: ");
+
+    print_task_brief(parent_pid, &parent_name);
+
+    print_color!(crate::console::color::CYAN, " -> ");
+
+    print_task_brief(new_pid, &new_name);
+
+    println!();
 
     new_pid as isize
 }
@@ -114,7 +133,25 @@ pub fn sys_exec(path: *const u8) -> isize {
 
         let task = current_task().unwrap();
 
-        task.exec(data, path);
+        println!();
+
+        let pid = task.pid.0;
+
+        let old_name = task.inner_exclusive_access().name.clone();
+
+        task.exec(data, path.clone());
+
+        let new_name = path;
+
+        print_color!(crate::console::color::CYAN, "exec: ");
+
+        print_task_brief(pid, &old_name);
+
+        print_color!(crate::console::color::CYAN, " -> ");
+
+        print_task_brief(pid, &new_name);
+
+        println!();
 
         0
     } else {

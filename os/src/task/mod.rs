@@ -12,7 +12,7 @@
 
 mod context;
 mod id;
-mod manager;
+pub(crate) mod manager;
 mod processor;
 mod switch;
 #[allow(clippy::module_inception)]
