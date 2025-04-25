@@ -89,7 +89,7 @@ fn create_kstack_allocator() -> UPSafeCell<RecycleAllocator> {
 lazy_static! {
     #[no_mangle]
     static ref PID_ALLOCATOR: UPSafeCell<RecycleAllocator> = create_pid_allocator();
-    
+
     #[no_mangle]
     static ref KSTACK_ALLOCATOR: UPSafeCell<RecycleAllocator> = create_kstack_allocator();
 }
