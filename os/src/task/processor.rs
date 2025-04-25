@@ -7,6 +7,7 @@ use super::__switch;
 use super::{fetch_task, TaskStatus};
 use super::{TaskContext, TaskControlBlock};
 use crate::sync::UPSafeCell;
+use crate::task::manager::TASK_MANAGER;
 use crate::trap::TrapContext;
 use crate::utils;
 use crate::utils::consume;
@@ -100,6 +101,9 @@ pub fn run_tasks() {
 
     loop {
 
+        // 打印当前就绪队列所有任务名
+        TASK_MANAGER.exclusive_access().print_queue_names();
+
         let mut processor = PROCESSOR.exclusive_access();
 
         if let Some(task) = fetch_task() {
@@ -112,6 +116,11 @@ pub fn run_tasks() {
             let next_task_cx_ptr = &task_inner.task_cx as *const TaskContext;
 
             task_inner.task_status = TaskStatus::Running;
+
+            unsafe {
+
+                (*(next_task_cx_ptr as *mut TaskContext)).set_name(task_inner.name.as_str());
+            }
 
             // 手动释放 task_inner
             drop(task_inner);

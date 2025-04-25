@@ -4,6 +4,7 @@ use super::TaskControlBlock;
 use crate::sync::UPSafeCell;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use lazy_static::*;
 
 /// 线程安全的 `TaskControlBlock` 队列。
@@ -52,6 +53,19 @@ impl TaskManager {
     pub fn fetch(&mut self) -> Option<Arc<TaskControlBlock>> {
 
         self.ready_queue.pop_front()
+    }
+
+    /// 打印当前就绪队列中所有任务的 name
+
+    pub fn print_queue_names(&self) {
+
+        let names: Vec<_> = self
+            .ready_queue
+            .iter()
+            .map(|task| task.inner_exclusive_access().name.clone())
+            .collect();
+
+        println!("Ready Queue: [{}]", names.join(" -> "));
     }
 }
 
