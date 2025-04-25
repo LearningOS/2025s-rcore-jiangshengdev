@@ -1,11 +1,65 @@
 //! [`TaskManager`] 的实现。
 
 use super::TaskControlBlock;
+use crate::console::named_color;
 use crate::sync::UPSafeCell;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use lazy_static::*;
+use lazy_static::lazy_static;
+
+// 程序名到背景RGB颜色的静态映射
+fn app_name_color_map() -> &'static BTreeMap<&'static str, (u8, u8, u8)> {
+
+    lazy_static! {
+        static ref MAP: BTreeMap<&'static str, (u8, u8, u8)> = {
+
+            let mut m = BTreeMap::new();
+
+            m.insert("ch2b_bad_address", named_color::CRIMSON);
+
+            m.insert("ch2b_bad_instructions", named_color::ORANGE);
+
+            m.insert("ch2b_bad_register", named_color::GOLD);
+
+            m.insert("ch2b_hello_world", named_color::SKYBLUE);
+
+            m.insert("ch2b_power_3", named_color::LIMEGREEN);
+
+            m.insert("ch2b_power_5", named_color::MEDIUMORCHID);
+
+            m.insert("ch2b_power_7", named_color::CORNFLOWERBLUE);
+
+            m.insert("ch3b_yield0", named_color::TOMATO);
+
+            m.insert("ch3b_yield1", named_color::YELLOWGREEN);
+
+            m.insert("ch3b_yield2", named_color::LIGHTPINK);
+
+            m.insert("ch4b_sbrk", named_color::LIGHTSEAGREEN);
+
+            m.insert("ch5b_exit", named_color::SADDLEBROWN);
+
+            m.insert("ch5b_forktest", named_color::VIOLET);
+
+            m.insert("ch5b_forktest2", named_color::LIGHTSTEELBLUE);
+
+            m.insert("ch5b_forktest_simple", named_color::KHAKI);
+
+            m.insert("ch5b_forktree", named_color::DARKORANGE);
+
+            m.insert("ch5b_initproc", named_color::AQUAMARINE);
+
+            m.insert("ch5b_user_shell", named_color::LAVENDER);
+
+            m.insert("ch5b_usertest", named_color::PALEGREEN);
+
+            m
+        };
+    }
+
+    &MAP
+}
 
 /// 线程安全的 `TaskControlBlock` 队列。
 
@@ -42,7 +96,23 @@ impl TaskManager {
 
     pub fn add(&mut self, task: Arc<TaskControlBlock>) {
 
+        println!();
+
+        print_color!(crate::console::color::YELLOW, "[Add] Before enqueue:\n");
+
+        self.print_queue_names();
+
+        println!();
+
+        let name = task.inner_exclusive_access().name.clone();
+
+        print_color!(crate::console::color::GREEN, "[Add] Enqueue: {}\n", name);
+
         self.ready_queue.push_back(task);
+
+        print_color!(crate::console::color::CYAN, "[Add] After enqueue:\n");
+
+        self.print_queue_names();
     }
 
     /// 从就绪队列取出一个进程。
@@ -52,20 +122,96 @@ impl TaskManager {
 
     pub fn fetch(&mut self) -> Option<Arc<TaskControlBlock>> {
 
-        self.ready_queue.pop_front()
+        println!();
+
+        print_color!(crate::console::color::YELLOW, "[Fetch] Before dequeue:\n");
+
+        self.print_queue_names();
+
+        println!();
+
+        let task = self.ready_queue.pop_front();
+
+        if let Some(ref t) = task {
+
+            let name = t.inner_exclusive_access().name.clone();
+
+            print_color!(crate::console::color::RED, "[Fetch] Dequeue: {}\n", name);
+        } else {
+
+            println!("[Fetch] Dequeue: None");
+        }
+
+        print_color!(crate::console::color::CYAN, "[Fetch] After dequeue:\n");
+
+        self.print_queue_names();
+
+        task
     }
 
     /// 打印当前就绪队列中所有任务的 name
 
     pub fn print_queue_names(&self) {
 
-        let names: Vec<_> = self
+        // 打印 (pid, name) 列表
+        let infos: Vec<_> = self
             .ready_queue
             .iter()
-            .map(|task| task.inner_exclusive_access().name.clone())
+            .map(|task| {
+
+                let pid = task.pid.0;
+
+                let name = task.inner_exclusive_access().name.clone();
+
+                (pid, name)
+            })
             .collect();
 
-        println!("Ready Queue: [{}]", names.join(" -> "));
+        let color_map = app_name_color_map();
+
+        // Head and tail symbols and colors (English, no Chinese)
+        let head_label = "HEAD";
+
+        let tail_label = "TAIL";
+
+        let head_color = crate::console::color::BRIGHT_GREEN;
+
+        let tail_color = crate::console::color::BRIGHT_RED;
+
+        let arrow = " <- ";
+
+        let arrow_color = crate::console::color::BRIGHT_MAGENTA;
+
+        print_color!(head_color, "{}", head_label);
+
+        for (pid, name) in &infos {
+
+            print_color!(arrow_color, "{}", arrow);
+
+            let base_name = name.trim_end_matches('$');
+
+            if let Some(&color) = color_map.get(base_name) {
+
+                if name.contains('$') {
+
+                    let (r, g, b) = color;
+
+                    let (r, g, b) = (r / 2, g / 2, b / 2);
+
+                    print_bg_rgb!((r, g, b), "[{}] {}", pid, name);
+                } else {
+
+                    print_bg_named_rgb!(color, "[{}] {}", pid, name);
+                }
+            } else {
+
+                print_color!(crate::console::color::RESET, "[{}] {}", pid, name);
+            }
+        }
+
+        print_color!(arrow_color, "{}", arrow);
+
+        print_color!(tail_color, "{}\n", tail_label);
     }
 }
 

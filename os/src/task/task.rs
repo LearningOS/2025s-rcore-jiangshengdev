@@ -6,6 +6,7 @@ use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
 use crate::trap::{trap_handler, TrapContext};
+use alloc::format;
 use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
@@ -288,7 +289,7 @@ impl TaskControlBlock {
 
         let kernel_stack_top = kernel_stack.get_top();
 
-        let name = parent_inner.name.clone();
+        let name = format!("{}$", parent_inner.name);
 
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
