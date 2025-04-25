@@ -10,6 +10,7 @@ use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use crate::utils;
 use crate::utils::consume;
+use alloc::format;
 use alloc::sync::Arc;
 use lazy_static::*;
 
@@ -132,10 +133,36 @@ pub fn run_tasks() {
                 (*next_task_cx_ptr).debug_name()
             };
 
-            println!(
-                "[run_tasks] __switch: idle -> next, idle_name: {}, next_name: {}",
-                idle_name, next_name
-            );
+            // 格式化为定长字段，保证对齐
+            println!("");
+
+            let tag = format!("{:<13}", "[run_tasks]");
+
+            let idle_label = format!("{:<8}", "idle");
+
+            let next_label = format!("{:<8}", "next");
+
+            let idle_name_fmt = format!("{:<21}", idle_name);
+
+            let next_name_fmt = format!("{:<21}", next_name);
+
+            print_color!(crate::console::color::YELLOW, "{}", tag);
+
+            print!("  ");
+
+            print_color!(crate::console::color::BLUE, "{}", idle_label);
+
+            print!(": ");
+
+            print_color!(crate::console::color::BLUE, "{}", idle_name_fmt);
+
+            print!("\t -> \t");
+
+            print_color!(crate::console::color::GREEN, "{}", next_label);
+
+            print!(": ");
+
+            print_color!(crate::console::color::GREEN, "{}\n", next_name_fmt);
 
             consume(idle_name);
 
@@ -220,10 +247,36 @@ pub unsafe fn schedule(switched_task_cx_ptr: *mut TaskContext) {
 
     let idle_name = (*idle_task_cx_ptr).debug_name();
 
-    println!(
-        "[schedule] __switch: switched -> idle, switched_name: {}, idle_name: {}",
-        switched_name, idle_name
-    );
+    // 格式化为定长字段，保证对齐
+    println!("");
+
+    let tag = format!("{:<13}", "[schedule]");
+
+    let switched_label = format!("{:<8}", "switched");
+
+    let idle_label = format!("{:<8}", "idle");
+
+    let switched_name_fmt = format!("{:<21}", switched_name);
+
+    let idle_name_fmt = format!("{:<21}", idle_name);
+
+    print_color!(crate::console::color::YELLOW, "{}", tag);
+
+    print!("  ");
+
+    print_color!(crate::console::color::BRIGHT_BLACK, "{}", switched_label);
+
+    print!(": ");
+
+    print_color!(crate::console::color::BRIGHT_BLACK, "{}", switched_name_fmt);
+
+    print!("\t -> \t");
+
+    print_color!(crate::console::color::BLUE, "{}", idle_label);
+
+    print!(": ");
+
+    print_color!(crate::console::color::BLUE, "{}\n", idle_name_fmt);
 
     consume(switched_name);
 
