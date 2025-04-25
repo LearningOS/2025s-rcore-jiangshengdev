@@ -67,6 +67,7 @@ fn create_task_manager() -> UPSafeCell<TaskManager> {
 
 lazy_static! {
     /// 通过 lazy_static! 创建的 TASK_MANAGER 实例。
+    #[no_mangle]
     pub static ref TASK_MANAGER: UPSafeCell<TaskManager> = create_task_manager();
 }
 

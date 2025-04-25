@@ -158,6 +158,7 @@ lazy_static! {
     ///
     /// 名称 "initproc" 可更改为其他应用名如 "usertests"，
     /// 但我们有 user_shell，无需更改。
+    #[no_mangle]
     pub static ref INITPROC: Arc<TaskControlBlock> = create_initproc();
 }
 

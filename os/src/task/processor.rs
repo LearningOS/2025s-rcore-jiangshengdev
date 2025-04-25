@@ -88,6 +88,7 @@ fn create_processor() -> UPSafeCell<Processor> {
 }
 
 lazy_static! {
+    #[no_mangle]
     pub static ref PROCESSOR: UPSafeCell<Processor> = create_processor();
 }
 

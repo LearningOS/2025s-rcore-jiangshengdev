@@ -49,6 +49,7 @@ fn create_kernel_space() -> Arc<UPSafeCell<MemorySet>> {
 
 lazy_static! {
     /// 内核初始内存映射（内核地址空间）。
+    #[no_mangle]
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> = create_kernel_space();
 }
 

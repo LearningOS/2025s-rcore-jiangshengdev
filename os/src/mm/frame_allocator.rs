@@ -144,6 +144,7 @@ fn create_frame_allocator() -> UPSafeCell<FrameAllocatorImpl> {
 
 lazy_static! {
     /// 通过 lazy_static! 创建的帧分配器实例。
+    #[no_mangle]
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> = create_frame_allocator();
 }
 

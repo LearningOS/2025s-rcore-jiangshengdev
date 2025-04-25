@@ -100,6 +100,7 @@ fn create_app_names() -> Vec<&'static str> {
 
 lazy_static! {
     /// 所有应用的名称。
+    #[no_mangle]
     static ref APP_NAMES: Vec<&'static str> = create_app_names();
 }
 
