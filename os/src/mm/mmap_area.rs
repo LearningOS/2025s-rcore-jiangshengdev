@@ -52,9 +52,6 @@ impl MmapAreaManager {
         len: usize,
         permission: MapPermission,
     ) -> isize {
-        if len == 0 {
-            return 0;
-        }
         let end = VirtAddr::from(start.0 + len);
 
         // 检查该区域是否与已有映射重叠
@@ -74,9 +71,6 @@ impl MmapAreaManager {
 
     /// 取消虚存的映射
     pub fn munmap(&mut self, page_table: &mut PageTable, start: VirtAddr, len: usize) -> isize {
-        if len == 0 {
-            return 0;
-        }
         let end = VirtAddr::from(start.0 + len);
         let start_vpn = start.floor();
         let end_vpn = end.ceil();
