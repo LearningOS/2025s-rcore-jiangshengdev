@@ -107,57 +107,75 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
     // ---- release current PCB automatically
 }
 
-/// YOUR JOB: get time with second and microsecond
-/// HINT: You might reimplement it with virtual memory management.
-/// HINT: What if [`TimeVal`] is splitted by two pages ?
+// 获取当前时间（秒和微秒）
 pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
+    // 打印调试信息，包含当前进程 pid
     trace!("kernel:pid[{}] sys_get_time", current_task().unwrap().pid.0);
+    // 获取当前时间（微秒）
     let us = get_time_us();
+    // 构造 TimeVal 结构体
     let time_val = TimeVal {
         sec: us / 1_000_000,
         usec: us % 1_000_000,
     };
+    // 获取当前用户地址空间 token
     let token = current_user_token();
+    // 写入 TimeVal 到用户空间，需处理跨页和权限
     write_user_struct(token, ts, time_val);
+    // 返回 0 表示成功
     0
 }
 
-/// 实现 mmap
-/// YOUR JOB: Implement mmap.
+// 匿名内存映射 mmap
 pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
+    // 打印调试信息，包含当前进程 pid
     trace!("kernel:pid[{}] sys_mmap", current_task().unwrap().pid.0);
+    // 长度为 0 直接返回成功
     if len == 0 {
         return 0;
     }
+    // 检查起始地址是否页对齐
     let start_va = VirtAddr::from(start);
     if !start_va.aligned() {
         return -1;
     }
+    // 检查 prot 权限是否合法
     if prot & 0x7 == 0 {
         return -1;
     }
+    // 解析权限标志
     let flags = match parse_prot_flags(prot) {
         Some(f) => f,
         None => return -1,
     };
+    // 转换为 MapPermission
     let permission = MapPermission::from(flags);
+    // 获取当前任务
     let task = current_task().unwrap();
+    // 独占访问进程内存空间
     let mut inner = task.inner_exclusive_access();
+    // 执行 mmap 操作
     inner.memory_set.mmap(start_va, len, permission)
 }
 
-/// 实现 munmap
+// 取消匿名内存映射 munmap
 pub fn sys_munmap(start: usize, len: usize) -> isize {
+    // 打印调试信息，包含当前进程 pid
     trace!("kernel:pid[{}] sys_munmap", current_task().unwrap().pid.0);
+    // 长度为 0 直接返回成功
     if len == 0 {
         return 0;
     }
+    // 检查起始地址是否页对齐
     let start_va = VirtAddr::from(start);
     if !start_va.aligned() {
         return -1;
     }
+    // 获取当前任务
     let task = current_task().unwrap();
+    // 独占访问进程内存空间
     let mut inner = task.inner_exclusive_access();
+    // 执行 munmap 操作
     inner.memory_set.munmap(start_va, len)
 }
 
