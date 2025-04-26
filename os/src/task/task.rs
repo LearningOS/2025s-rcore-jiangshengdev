@@ -138,6 +138,9 @@ impl TaskControlBlock {
 
         // **** access current TCB exclusively
         let mut inner = self.inner_exclusive_access();
+        // 清理原有的 mmap 匿名映射区域
+        // 统一调用 clear_mmap 方法，安全清理匿名映射
+        inner.memory_set.clear_mmap();
         // substitute memory_set
         inner.memory_set = memory_set;
         // update trap_cx ppn

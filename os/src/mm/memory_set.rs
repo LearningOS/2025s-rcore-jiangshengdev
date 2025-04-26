@@ -1,4 +1,5 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
+use super::MmapAreaManager;
 use super::{frame_alloc, FrameTracker};
 use super::{PTEFlags, PageTable, PageTableEntry};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
@@ -34,6 +35,8 @@ lazy_static! {
 pub struct MemorySet {
     page_table: PageTable,
     areas: Vec<MapArea>,
+    /// 匿名映射区域管理器
+    pub mmap_manager: MmapAreaManager,
 }
 
 impl MemorySet {
@@ -42,6 +45,7 @@ impl MemorySet {
         Self {
             page_table: PageTable::new(),
             areas: Vec::new(),
+            mmap_manager: MmapAreaManager::new(),
         }
     }
     /// Get the page table token
@@ -251,6 +255,23 @@ impl MemorySet {
                     .copy_from_slice(src_ppn.get_bytes_array());
             }
         }
+        // 复制 mmap_manager 里的 mmap_areas
+        for (start_vpn, area) in user_space.mmap_manager.mmap_areas.iter() {
+            let new_area = MapArea::from_another(area);
+            // 直接插入到 mmap_manager
+            memory_set
+                .mmap_manager
+                .mmap_areas
+                .insert(*start_vpn, new_area);
+            // 拷贝物理页内容
+            for vpn in area.vpn_range {
+                let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                dst_ppn
+                    .get_bytes_array()
+                    .copy_from_slice(src_ppn.get_bytes_array());
+            }
+        }
         memory_set
     }
     /// Change page table by writing satp CSR Register.
@@ -300,10 +321,27 @@ impl MemorySet {
             false
         }
     }
+
+    /// 创建内存映射区域
+    /// 将从 start 开始，长度为 len 的虚拟内存区域与物理内存映射，具有指定的权限
+    pub fn mmap(&mut self, start: VirtAddr, len: usize, permission: MapPermission) -> isize {
+        self.mmap_manager
+            .mmap(&mut self.page_table, start, len, permission)
+    }
+
+    /// 取消虚存的映射
+    pub fn munmap(&mut self, start: VirtAddr, len: usize) -> isize {
+        self.mmap_manager.munmap(&mut self.page_table, start, len)
+    }
+
+    /// Clear all anonymous mmap regions
+    pub fn clear_mmap(&mut self) {
+        self.mmap_manager.clear(&mut self.page_table);
+    }
 }
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
-    vpn_range: VPNRange,
+    pub(crate) vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
     map_type: MapType,
     map_perm: MapPermission,
