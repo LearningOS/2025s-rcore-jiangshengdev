@@ -1,15 +1,15 @@
 //! Process management syscalls
-use alloc::sync::Arc;
-
 use crate::task::{add_task, current_task};
 use crate::{
     loader::get_app_data_by_name,
-    mm::{translated_refmut, translated_str, write_user_struct},
-    task::{
-        current_user_token, exit_current_and_run_next, mmap, munmap, suspend_current_and_run_next,
+    mm::{
+        parse_prot_flags, translated_refmut, translated_str, write_user_struct, MapPermission,
+        VirtAddr,
     },
+    task::{current_user_token, exit_current_and_run_next, suspend_current_and_run_next},
     timer::get_time_us,
 };
+use alloc::sync::Arc;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -126,14 +126,39 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 /// YOUR JOB: Implement mmap.
 pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
     trace!("kernel:pid[{}] sys_mmap", current_task().unwrap().pid.0);
-    mmap(start, len, prot)
+    if len == 0 {
+        return 0;
+    }
+    let start_va = VirtAddr::from(start);
+    if !start_va.aligned() {
+        return -1;
+    }
+    if prot & 0x7 == 0 {
+        return -1;
+    }
+    let flags = match parse_prot_flags(prot) {
+        Some(f) => f,
+        None => return -1,
+    };
+    let permission = MapPermission::from(flags);
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    inner.memory_set.mmap(start_va, len, permission)
 }
 
 /// 实现 munmap
-/// YOUR JOB: Implement munmap.
 pub fn sys_munmap(start: usize, len: usize) -> isize {
     trace!("kernel:pid[{}] sys_munmap", current_task().unwrap().pid.0);
-    munmap(start, len)
+    if len == 0 {
+        return 0;
+    }
+    let start_va = VirtAddr::from(start);
+    if !start_va.aligned() {
+        return -1;
+    }
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    inner.memory_set.munmap(start_va, len)
 }
 
 /// change data segment size

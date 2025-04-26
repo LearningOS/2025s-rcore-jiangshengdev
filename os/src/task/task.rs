@@ -2,7 +2,7 @@
 use super::TaskContext;
 use super::{kstack_alloc, pid_alloc, KernelStack, PidHandle};
 use crate::config::TRAP_CONTEXT_BASE;
-use crate::mm::{parse_prot_flags, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
+use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
 use crate::trap::{trap_handler, TrapContext};
 use alloc::sync::{Arc, Weak};
@@ -33,17 +33,6 @@ impl TaskControlBlock {
     pub fn get_user_token(&self) -> usize {
         let inner = self.inner_exclusive_access();
         inner.memory_set.token()
-    }
-
-    /// 为当前任务创建内存映射
-    pub fn mmap(&self, start: usize, len: usize, prot: usize) -> isize {
-        let mut inner = self.inner_exclusive_access();
-        inner.mmap(start, len, prot)
-    }
-    /// 取消当前任务的虚存映射
-    pub fn munmap(&self, start: usize, len: usize) -> isize {
-        let mut inner = self.inner_exclusive_access();
-        inner.munmap(start, len)
     }
 }
 
@@ -95,46 +84,6 @@ impl TaskControlBlockInner {
     }
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
-    }
-
-    /// 为任务创建内存映射
-    pub fn mmap(&mut self, start: usize, len: usize, prot: usize) -> isize {
-        // 长度为 0，直接返回
-        if len == 0 {
-            return 0;
-        }
-        let start_va = VirtAddr::from(start);
-        // 检查起始地址是否对齐
-        if !start_va.aligned() {
-            return -1;
-        }
-        // 检查权限是否合法
-        if prot & 0x7 == 0 {
-            return -1;
-        }
-        // 解析权限标志
-        let flags = match parse_prot_flags(prot) {
-            Some(flags) => flags,
-            None => return -1,
-        };
-        // 构造映射权限并执行映射
-        let permission = MapPermission::from(flags);
-        self.memory_set.mmap(start_va, len, permission)
-    }
-
-    /// 取消虚存的映射
-    pub fn munmap(&mut self, start: usize, len: usize) -> isize {
-        // 长度为 0，直接返回
-        if len == 0 {
-            return 0;
-        }
-        let start_va = VirtAddr::from(start);
-        // 检查起始地址是否对齐
-        if !start_va.aligned() {
-            return -1;
-        }
-        // 执行取消映射
-        self.memory_set.munmap(start_va, len)
     }
 }
 
