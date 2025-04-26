@@ -23,7 +23,7 @@ pub use memory_set::{MapPermission, MemorySet, KERNEL_SPACE};
 pub use mmap_area::MmapAreaManager;
 pub use page_table::{translated_byte_buffer, translated_refmut, translated_str, PageTableEntry};
 use page_table::{PTEFlags, PageTable};
-pub use user::{read_user_memory, write_user_memory, write_user_struct};
+pub use user::write_user_struct;
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {
     heap_allocator::init_heap();

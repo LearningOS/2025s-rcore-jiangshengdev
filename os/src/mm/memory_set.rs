@@ -259,7 +259,10 @@ impl MemorySet {
         for (start_vpn, area) in user_space.mmap_manager.mmap_areas.iter() {
             let new_area = MapArea::from_another(area);
             // 直接插入到 mmap_manager
-            memory_set.mmap_manager.mmap_areas.insert(*start_vpn, new_area);
+            memory_set
+                .mmap_manager
+                .mmap_areas
+                .insert(*start_vpn, new_area);
             // 拷贝物理页内容
             for vpn in area.vpn_range {
                 let src_ppn = user_space.translate(vpn).unwrap().ppn();

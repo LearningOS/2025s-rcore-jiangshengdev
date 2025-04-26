@@ -1,5 +1,4 @@
 use crate::mm;
-use crate::mm::{PageTable, VirtAddr};
 
 #[allow(unused)]
 /// 读取用户空间中的结构体 T
@@ -37,44 +36,4 @@ pub fn write_user_struct<T: Copy>(token: usize, ptr: *mut T, value: T) {
             break;
         }
     }
-}
-
-fn do_user_memory(token: usize, addr: usize, data: Option<u8>) -> isize {
-    let va = VirtAddr::from(addr);
-    let vpn = va.floor();
-    let Some(pte) = PageTable::from_token(token).translate(vpn) else {
-        return -1;
-    };
-    if !pte.is_user_accessible() {
-        return -1;
-    }
-    match data {
-        Some(byte) => {
-            // writing
-            if !pte.writable() {
-                return -1;
-            }
-            let ppn = pte.ppn();
-            ppn.get_bytes_array()[va.page_offset()] = byte;
-            0
-        }
-        None => {
-            // reading
-            if !pte.readable() {
-                return -1;
-            }
-            let ppn = pte.ppn();
-            ppn.get_bytes_array()[va.page_offset()] as isize
-        }
-    }
-}
-
-/// 从用户空间读取一个字节
-pub fn read_user_memory(token: usize, addr: usize) -> isize {
-    do_user_memory(token, addr, None)
-}
-
-/// 向用户空间写入一个字节
-pub fn write_user_memory(token: usize, addr: usize, data: usize) -> isize {
-    do_user_memory(token, addr, Some(data as u8))
 }

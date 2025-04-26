@@ -1,6 +1,6 @@
 //! Types related to task management & Functions for completely changing TCB
+use super::TaskContext;
 use super::{kstack_alloc, pid_alloc, KernelStack, PidHandle};
-use super::{syscall_stats, TaskContext};
 use crate::config::TRAP_CONTEXT_BASE;
 use crate::mm::{parse_prot_flags, MapPermission, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
@@ -33,18 +33,6 @@ impl TaskControlBlock {
     pub fn get_user_token(&self) -> usize {
         let inner = self.inner_exclusive_access();
         inner.memory_set.token()
-    }
-
-    /// 记录指定系统调用的调用次数
-    pub fn record_syscall(&self, syscall_id: usize) {
-        let current = self.getpid();
-        syscall_stats::record_syscall(current, syscall_id);
-    }
-
-    /// 获取指定系统调用的累计调用次数
-    pub fn get_syscall_count(&self, syscall_id: usize) -> usize {
-        let current = self.getpid();
-        syscall_stats::get_syscall_count(current, syscall_id)
     }
 
     /// 为当前任务创建内存映射
