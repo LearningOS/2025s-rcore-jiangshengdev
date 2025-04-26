@@ -18,6 +18,7 @@ mod id;
 mod manager;
 mod processor;
 mod switch;
+mod syscall_stats;
 #[allow(clippy::module_inception)]
 mod task;
 
@@ -35,6 +36,7 @@ pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
     Processor,
 };
+
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
     // There must be an application running.
@@ -118,4 +120,28 @@ lazy_static! {
 ///Add init process to the manager
 pub fn add_initproc() {
     add_task(INITPROC.clone());
+}
+
+/// 记录指定系统调用的调用次数
+pub fn record_syscall(syscall_id: usize) {
+    let task = current_task().unwrap();
+    task.record_syscall(syscall_id);
+}
+
+/// 获取指定系统调用的累计调用次数
+pub fn get_syscall_count(syscall_id: usize) -> usize {
+    let task = current_task().unwrap();
+    task.get_syscall_count(syscall_id)
+}
+
+/// 为当前运行的任务创建内存映射
+pub fn mmap(start: usize, len: usize, prot: usize) -> isize {
+    let task = current_task().unwrap();
+    (*task).mmap(start, len, prot)
+}
+
+/// 取消到 [start, start + len) 虚存的映射
+pub fn munmap(start: usize, len: usize) -> isize {
+    let task = current_task().unwrap();
+    (*task).munmap(start, len)
 }

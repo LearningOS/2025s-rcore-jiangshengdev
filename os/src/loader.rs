@@ -3,6 +3,7 @@
 /// Get the total number of applications.
 use alloc::vec::Vec;
 use lazy_static::*;
+
 ///get app number
 pub fn get_num_app() -> usize {
     extern "C" {
