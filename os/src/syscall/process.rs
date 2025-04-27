@@ -1,5 +1,5 @@
 //! Process management syscalls
-use crate::mm::{parse_prot_flags, write_user_struct, MapPermission, VirtAddr};
+use crate::mm::{parse_prot, write_user_struct, MapPermission, VirtAddr};
 use crate::{
     loader::get_app_data_by_name,
     mm::{translated_refmut, translated_str},
@@ -147,7 +147,7 @@ pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
         return 0;
     }
     let start_va = VirtAddr::from(start);
-    parse_prot_flags(prot)
+    parse_prot(prot)
         .filter(|flags| !flags.is_empty() && start_va.aligned())
         .map(MapPermission::from)
         .map(|permission| {

@@ -17,7 +17,7 @@ mod user;
 pub use address::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use address::{StepByOne, VPNRange};
 pub use frame_allocator::{frame_alloc, FrameTracker};
-pub use prot::parse_prot_flags;
+pub use prot::parse_prot;
 pub use memory_set::remap_test;
 pub use memory_set::{MapPermission, MemorySet, KERNEL_SPACE};
 pub use mmap_area::MmapAreaManager;
