@@ -142,55 +142,37 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 
 // 匿名内存映射 mmap
 pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
-    // 打印调试信息，包含当前进程 pid
     trace!("kernel:pid[{}] sys_mmap", current_task().unwrap().pid.0);
-    // 长度为 0 直接返回成功
     if len == 0 {
         return 0;
     }
-    // 检查起始地址是否页对齐
     let start_va = VirtAddr::from(start);
-    if !start_va.aligned() {
-        return -1;
-    }
-    // 检查 prot 权限是否合法
-    if prot & 0x7 == 0 {
-        return -1;
-    }
-    // 解析权限标志
-    let flags = match parse_prot_flags(prot) {
-        Some(f) => f,
-        None => return -1,
-    };
-    // 转换为 MapPermission
-    let permission = MapPermission::from(flags);
-    // 获取当前任务
-    let task = current_task().unwrap();
-    // 独占访问进程内存空间
-    let mut inner = task.inner_exclusive_access();
-    // 执行 mmap 操作
-    inner.memory_set.mmap(start_va, len, permission)
+    parse_prot_flags(prot)
+        .filter(|flags| !flags.is_empty() && start_va.aligned())
+        .map(MapPermission::from)
+        .map(|permission| {
+            let task = current_task().unwrap();
+            let mut inner = task.inner_exclusive_access();
+            inner.memory_set.mmap(start_va, len, permission)
+        })
+        .unwrap_or(-1)
 }
 
 // 取消匿名内存映射 munmap
 pub fn sys_munmap(start: usize, len: usize) -> isize {
-    // 打印调试信息，包含当前进程 pid
     trace!("kernel:pid[{}] sys_munmap", current_task().unwrap().pid.0);
-    // 长度为 0 直接返回成功
     if len == 0 {
         return 0;
     }
-    // 检查起始地址是否页对齐
     let start_va = VirtAddr::from(start);
-    if !start_va.aligned() {
-        return -1;
-    }
-    // 获取当前任务
-    let task = current_task().unwrap();
-    // 独占访问进程内存空间
-    let mut inner = task.inner_exclusive_access();
-    // 执行 munmap 操作
-    inner.memory_set.munmap(start_va, len)
+    Some(start_va)
+        .filter(|va| va.aligned())
+        .map(|va| {
+            let task = current_task().unwrap();
+            let mut inner = task.inner_exclusive_access();
+            inner.memory_set.munmap(va, len)
+        })
+        .unwrap_or(-1)
 }
 
 /// change data segment size
