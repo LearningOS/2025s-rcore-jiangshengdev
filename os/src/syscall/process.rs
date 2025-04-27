@@ -1,16 +1,12 @@
 //! Process management syscalls
-use crate::mm::{parse_prot, write_user_struct, MapPermission, VirtAddr};
+use crate::task::forktree::print_fork_tree;
+use crate::task::{add_task, current_task};
 use crate::{
     loader::get_app_data_by_name,
-    mm::{translated_refmut, translated_str},
-    task::{
-        add_task,
-        current_task,
-        current_user_token,
-        exit_current_and_run_next,
-        forktree::print_fork_tree, // 新增
-        suspend_current_and_run_next,
+    mm::{
+        parse_prot, translated_refmut, translated_str, write_user_struct, MapPermission, VirtAddr,
     },
+    task::{current_user_token, exit_current_and_run_next, suspend_current_and_run_next},
     timer::get_time_us,
 };
 use alloc::sync::Arc;
