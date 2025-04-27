@@ -257,8 +257,10 @@ impl MemorySet {
         }
         // 复制 mmap_manager 里的 mmap_areas
         for (start_vpn, area) in user_space.mmap_manager.mmap_areas.iter() {
-            let new_area = MapArea::from_another(area);
-            // 直接插入到 mmap_manager
+            let mut new_area = MapArea::from_another(area);
+            // 分配物理页并建立映射
+            new_area.map(&mut memory_set.page_table);
+            // 插入到 mmap_manager
             memory_set
                 .mmap_manager
                 .mmap_areas
