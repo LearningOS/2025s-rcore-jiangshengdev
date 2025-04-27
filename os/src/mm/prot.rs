@@ -13,7 +13,7 @@ bitflags! {
 }
 
 /// 解析标志位，若有非法标志则返回 None
-pub fn parse_prot_flags(prot: usize) -> Option<ProtFlags> {
+pub fn parse_prot(prot: usize) -> Option<ProtFlags> {
     ProtFlags::from_bits(prot as u8).filter(|flags| ProtFlags::all().contains(*flags))
 }
 

@@ -3,8 +3,7 @@ use crate::task::{add_task, current_task};
 use crate::{
     loader::get_app_data_by_name,
     mm::{
-        parse_prot_flags, translated_refmut, translated_str, write_user_struct, MapPermission,
-        VirtAddr,
+        parse_prot, translated_refmut, translated_str, write_user_struct, MapPermission, VirtAddr,
     },
     task::{current_user_token, exit_current_and_run_next, suspend_current_and_run_next},
     timer::get_time_us,
@@ -133,7 +132,7 @@ pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
         return 0;
     }
     let start_va = VirtAddr::from(start);
-    parse_prot_flags(prot)
+    parse_prot(prot)
         .filter(|flags| !flags.is_empty() && start_va.aligned())
         .map(MapPermission::from)
         .map(|permission| {
