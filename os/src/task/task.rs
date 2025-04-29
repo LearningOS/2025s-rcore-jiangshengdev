@@ -70,10 +70,10 @@ pub struct TaskControlBlockInner {
     pub program_brk: usize,
 
     /// 该进程当前已经运行的“长度”
-    pub stride: usize,
+    pub stride: u8,
 
     /// 表示进程的优先权（大于 1）
-    pub priority: usize,
+    pub priority: u8,
 }
 
 impl TaskControlBlockInner {

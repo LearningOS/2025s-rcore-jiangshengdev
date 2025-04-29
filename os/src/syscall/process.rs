@@ -201,7 +201,7 @@ pub fn sys_set_priority(prio: isize) -> isize {
     if prio >= 2 {
         let task = current_task().unwrap();
         let mut inner = task.inner_exclusive_access();
-        inner.priority = prio as usize;
+        inner.priority = prio as u8;
         prio
     } else {
         -1
