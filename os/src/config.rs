@@ -21,3 +21,6 @@ pub const TRAP_CONTEXT_BASE: usize = TRAMPOLINE - PAGE_SIZE;
 pub const CLOCK_FREQ: usize = 12500000;
 /// the physical memory end
 pub const MEMORY_END: usize = 0x88000000;
+
+/// 一个预先定义的大常数
+pub const BIG_STRIDE: usize = 1000000;
