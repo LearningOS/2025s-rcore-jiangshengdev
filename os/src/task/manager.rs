@@ -34,8 +34,8 @@ impl Ord for ReadyTask {
         let b = other.0.inner_exclusive_access().stride;
         // BinaryHeap 默认是大顶堆（最大堆），但我们需要最小的 stride。
         // 通过反转 Ordering 实现最小堆效果：stride 越小，cmp 返回 Ordering::Greater。
-        // 计算从 b 到 a 的环形距离 diff（支持回绕判断）
-        let diff = a.wrapping_sub(b);
+        // 计算环形距离 diff（支持回绕判断）
+        let diff = b.wrapping_sub(a);
         if diff == 0 {
             Ordering::Equal
         } else if diff < BIG_STRIDE / 2 {
