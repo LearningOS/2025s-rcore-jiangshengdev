@@ -38,7 +38,7 @@ impl Ord for ReadyTask {
         if diff == 0 {
             Ordering::Equal
         } else if diff < BIG_STRIDE / 2 {
-            // diff < BIG_STRIDE/2 表示在环上 a 更接近 b，即视作 a < b
+            // diff < BIG_STRIDE/2 表示从 a 到 b 的距离小于半圈，因此视作 a < b
             Ordering::Greater
         } else {
             // 否则表示 a 距离 b 超过半圈，视作 a > b
