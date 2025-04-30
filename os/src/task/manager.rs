@@ -29,7 +29,6 @@ impl PartialOrd for ReadyTask {
 }
 impl Ord for ReadyTask {
     fn cmp(&self, other: &Self) -> Ordering {
-        use crate::config::BIG_STRIDE;
         let a = self.0.inner_exclusive_access().stride;
         let b = other.0.inner_exclusive_access().stride;
         // BinaryHeap 默认是大顶堆（最大堆），但我们需要最小的 stride。
