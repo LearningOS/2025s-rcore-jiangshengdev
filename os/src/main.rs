@@ -13,6 +13,7 @@
 #![no_main]
 #![feature(panic_info_message)]
 
+use crate::buddy_system::test_all;
 use core::arch::global_asm;
 use log::*;
 
@@ -24,6 +25,7 @@ mod sbi;
 
 #[path = "boards/qemu.rs"]
 mod board;
+mod buddy_system;
 
 global_asm!(include_str!("entry.asm"));
 
@@ -72,6 +74,8 @@ pub fn rust_main() -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+
+    test_all();
 
     use crate::board::QEMUExit;
     crate::board::QEMU_EXIT_HANDLE.exit_success(); // CI autotest success
