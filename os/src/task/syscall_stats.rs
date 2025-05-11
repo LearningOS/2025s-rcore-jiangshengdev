@@ -1,6 +1,6 @@
 //! 系统调用统计模块
 //!
-//! 使用UPSafeCell和堆内存来保存所有任务的系统调用统计信息
+//! 使用 UPSafeCell 和堆内存来保存所有任务的系统调用统计信息
 
 use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
@@ -11,8 +11,8 @@ use lazy_static::*;
 /// 对于每个任务，保存其所有系统调用的调用次数
 pub struct SyscallStats {
     /// 所有任务的系统调用统计信息
-    /// 外层映射：任务ID -> 内层映射
-    /// 内层映射：系统调用ID -> 调用次数
+    /// 外层映射：任务 ID -> 内层映射
+    /// 内层映射：系统调用 ID -> 调用次数
     stats: BTreeMap<usize, BTreeMap<usize, usize>>,
 }
 
@@ -34,7 +34,7 @@ impl SyscallStats {
 
     /// 获取指定任务的指定系统调用的调用次数
     pub fn get_syscall_count(&self, task_id: usize, syscall_id: usize) -> usize {
-        // 获取任务的映射，如果没有则返回0
+        // 获取任务的映射，如果没有则返回 0
         self.stats
             .get(&task_id)
             .and_then(|task_stats| task_stats.get(&syscall_id))
