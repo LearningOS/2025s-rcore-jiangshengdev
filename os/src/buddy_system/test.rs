@@ -46,13 +46,13 @@ fn test_linked_list() {
     // assert_eq!(iter_mut.next().unwrap().pop(), value3_addr);
 
     // Test pop
-    let a = list.pop();
-    let b = list.pop();
-    let c = list.pop();
-    let d = list.pop();
+    let new_value3 = list.pop().unwrap();
+    let new_value2 = list.pop().unwrap();
+    let new_value1 = list.pop().unwrap();
+    let new_value0 = list.pop();
 
-    assert_eq!(a, Some(value3_addr));
-    assert_eq!(b, Some(value2_addr));
-    assert_eq!(c, Some(value1_addr));
-    assert_eq!(d, None);
+    assert_eq!(new_value3, value3_addr);
+    assert_eq!(new_value2, value2_addr);
+    assert_eq!(new_value1, value1_addr);
+    assert_eq!(new_value0, None);
 }
