@@ -5,9 +5,9 @@ pub fn test_all() {
 }
 
 fn test_linked_list() {
-    let mut value1: usize = 0;
-    let mut value2: usize = 0;
-    let mut value3: usize = 0;
+    let mut value1: usize = 0x5555;
+    let mut value2: usize = 0x6666;
+    let mut value3: usize = 0x7777;
     let mut list = linked_list::LinkedList::new();
     unsafe {
         list.push(&mut value1 as *mut usize);
