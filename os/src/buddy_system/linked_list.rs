@@ -3,7 +3,9 @@
 use core::marker::PhantomData;
 use core::{fmt, ptr};
 
-fn nop() {}
+pub fn nop() {}
+
+pub fn consume<T>(_value: T) {}
 
 /// An intrusive linked list
 ///
@@ -13,7 +15,7 @@ fn nop() {}
 /// See [CS140e](https://cs140e.sergio.bz/) for more information
 #[derive(Copy, Clone)]
 pub struct LinkedList {
-    head: *mut usize,
+    pub head: *mut usize,
 }
 
 unsafe impl Send for LinkedList {}
@@ -33,19 +35,23 @@ impl LinkedList {
 
     /// Push `item` to the front of the list
     pub unsafe fn push(&mut self, item: *mut usize) {
-        *item = self.head as usize;
+        let next_addr = self.head as usize;
+        *item = next_addr;
         self.head = item;
         nop();
     }
 
     /// Try to remove the first item in the list
     pub fn pop(&mut self) -> Option<*mut usize> {
-        match self.is_empty() {
+        let empty = self.is_empty();
+
+        match empty {
             true => None,
             false => {
                 // Advance head pointer
                 let item = self.head;
-                self.head = unsafe { *item as *mut usize };
+                let next_addr = unsafe { *item as *mut usize };
+                self.head = next_addr;
                 Some(item)
             }
         }
@@ -59,6 +65,7 @@ impl LinkedList {
         }
     }
 
+    #[allow(unused)]
     /// Return an mutable iterator over the items in the list
     pub fn iter_mut(&mut self) -> IterMut {
         IterMut {
@@ -96,6 +103,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
+#[allow(unused)]
 /// Represent a mutable node in `LinkedList`
 pub struct ListNode {
     prev: *mut usize,
@@ -103,6 +111,7 @@ pub struct ListNode {
 }
 
 impl ListNode {
+    #[allow(unused)]
     /// Remove the node from the list
     pub fn pop(self) -> *mut usize {
         // Skip the current one
