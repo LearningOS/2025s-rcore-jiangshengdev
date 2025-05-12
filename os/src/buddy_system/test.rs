@@ -6,53 +6,57 @@ pub fn test_all() {
 }
 
 fn test_linked_list() {
-    let mut value1: usize = 0x5555;
-    let mut value2: usize = 0x6666;
-    let mut value3: usize = 0x7777;
+    const N: usize = 16;
+    const BASE: usize = 0x0000_0000_0000_0000;
+    const STEP: usize = 0x1111_1111_1111_1111;
 
-    let mut list = linked_list::LinkedList::new();
-
-    let list_addr = &list;
-
-    let value1_addr = &mut value1 as *mut usize;
-    let value2_addr = &mut value2 as *mut usize;
-    let value3_addr = &mut value3 as *mut usize;
-
-    consume(list_addr);
-
-    unsafe {
-        list.push(value1_addr);
-        list.push(value2_addr);
-        list.push(value3_addr);
+    // 1. 构建 16 个节点的值
+    let mut values = [0usize; N];
+    for (i, slot) in values.iter_mut().enumerate() {
+        *slot = BASE + STEP * i;
     }
 
-    assert_eq!(list.head, value3_addr);
+    // 2. 新建 list 并保存它的地址以便调试
+    let mut list = linked_list::LinkedList::new();
+    let list_addr = &list;
+    // println!("list @ {:p}", list_addr);
 
-    // Test links
-    assert_eq!(value3, value2_addr as usize);
-    assert_eq!(value2, value1_addr as usize);
-    assert_eq!(value1, 0);
+    // 3. 构建指针数组
+    let mut ptrs = [core::ptr::null_mut(); N];
+    for (i, p) in ptrs.iter_mut().enumerate() {
+        *p = &mut values[i] as *mut usize;
+    }
 
-    // Test iter
-    let mut iter = list.iter();
-    assert_eq!(iter.next(), Some(&mut value3 as *mut usize));
-    assert_eq!(iter.next(), Some(&mut value2 as *mut usize));
-    assert_eq!(iter.next(), Some(&mut value1 as *mut usize));
-    assert_eq!(iter.next(), None);
+    // 4. “consume” 防止优化
+    consume(list_addr);
 
-    // Test iter_mut
+    // 5. 依次 push
+    unsafe {
+        for &p in ptrs.iter() {
+            list.push(p);
+        }
+    }
 
-    // let mut iter_mut = list.iter_mut();
-    // assert_eq!(iter_mut.next().unwrap().pop(), value3_addr);
+    // 6. head 应指向最后 push 的节点
+    assert_eq!(list.head, ptrs[N - 1]);
 
-    // Test pop
-    let new_value3 = list.pop().unwrap();
-    let new_value2 = list.pop().unwrap();
-    let new_value1 = list.pop().unwrap();
-    let new_value0 = list.pop();
+    // 7. 检查内部 next 链接
+    for i in (1..N).rev() {
+        let next_addr = ptrs[i - 1] as usize;
+        assert_eq!(unsafe { *ptrs[i] }, next_addr);
+    }
+    assert_eq!(unsafe { *ptrs[0] }, 0);
 
-    assert_eq!(new_value3, value3_addr);
-    assert_eq!(new_value2, value2_addr);
-    assert_eq!(new_value1, value1_addr);
-    assert_eq!(new_value0, None);
+    // 8. 迭代器也应按 LIFO 顺序给出同样的指针序列
+    let mut it = list.iter();
+    for &expect in ptrs.iter().rev() {
+        assert_eq!(it.next(), Some(expect));
+    }
+    assert!(it.next().is_none());
+
+    // 9. pop 也应以同样顺序逐个拿出
+    for &expect in ptrs.iter().rev() {
+        assert_eq!(list.pop().unwrap(), expect);
+    }
+    assert!(list.pop().is_none());
 }
