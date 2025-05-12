@@ -39,6 +39,9 @@ jobs:
           # 删除或重置全局配置
           rm -f ${CARGO_HOME}/config.toml || true
           rm -rf ${CARGO_HOME}/registry/* || true
+      - name: Install cargo-binutils
+        run: |
+          cargo install cargo-binutils
       - uses: actions/checkout@v4
       - name: Print Cargo source info
         run: |
