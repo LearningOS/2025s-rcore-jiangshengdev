@@ -1,8 +1,15 @@
-use crate::buddy_system::linked_list;
 use crate::buddy_system::linked_list::consume;
+use crate::buddy_system::{linked_list, Heap};
+use core::alloc::Layout;
+use core::mem::size_of;
 
 pub fn test_all() {
     test_linked_list();
+    test_empty_heap();
+    test_heap_add();
+    test_heap_add_large();
+    test_heap_oom();
+    test_heap_alloc_and_free();
 }
 
 fn test_linked_list() {
@@ -59,4 +66,62 @@ fn test_linked_list() {
         assert_eq!(list.pop().unwrap(), expect);
     }
     assert!(list.pop().is_none());
+}
+
+fn test_empty_heap() {
+    let mut heap = Heap::<32>::new();
+    assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
+}
+
+fn test_heap_add() {
+    let mut heap = Heap::<32>::new();
+    assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
+
+    let space: [usize; 100] = [0; 100];
+    unsafe {
+        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+    }
+    let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
+    assert!(addr.is_ok());
+}
+
+fn test_heap_add_large() {
+    // Max size of block is 2^7 == 128 bytes
+    let mut heap = Heap::<8>::new();
+    assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
+
+    // 512 bytes of space
+    let space: [u8; 512] = [0; 512];
+    unsafe {
+        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(512) as usize);
+    }
+    let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
+    assert!(addr.is_ok());
+}
+
+fn test_heap_oom() {
+    let mut heap = Heap::<32>::new();
+    let space: [usize; 100] = [0; 100];
+    unsafe {
+        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+    }
+
+    assert!(heap
+        .alloc(Layout::from_size_align(100 * size_of::<usize>(), 1).unwrap())
+        .is_err());
+    assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_ok());
+}
+
+fn test_heap_alloc_and_free() {
+    let mut heap = Heap::<32>::new();
+    assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
+
+    let space: [usize; 100] = [0; 100];
+    unsafe {
+        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+    }
+    for _ in 0..100 {
+        let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+        heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
+    }
 }
