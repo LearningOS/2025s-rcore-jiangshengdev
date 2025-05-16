@@ -5,6 +5,7 @@ use core::mem::size_of;
 
 pub fn test_all() {
     test_linked_list();
+    test_linked_list_iter_mut();
     test_empty_heap();
     test_heap_add();
     test_heap_add_large();
@@ -34,7 +35,7 @@ fn test_linked_list() {
         *p = &mut values[i] as *mut usize;
     }
 
-    // 4. “consume” 防止优化
+    // 4. “consume”防止优化
     consume(list_addr);
 
     // 5. 依次 push
@@ -66,6 +67,40 @@ fn test_linked_list() {
         assert_eq!(list.pop().unwrap(), expect);
     }
     assert!(list.pop().is_none());
+}
+
+fn test_linked_list_iter_mut() {
+    // 构建链表并插入若干节点
+    const N: usize = 8;
+    let mut values = [0usize; N];
+    let mut list = linked_list::LinkedList::new();
+    let mut ptrs = [core::ptr::null_mut(); N];
+    for (i, slot) in values.iter_mut().enumerate() {
+        ptrs[i] = slot as *mut usize;
+    }
+    unsafe {
+        for &p in ptrs.iter() {
+            list.push(p);
+        }
+    }
+    // 选择一个指针，模拟实际分配器用法
+    let target_ptr = ptrs[3];
+    let mut found = false;
+    for node in list.iter_mut() {
+        if node.value() == target_ptr {
+            let p = node.pop();
+            assert_eq!(p, target_ptr);
+            found = true;
+            break;
+        }
+    }
+    assert!(found, "未找到目标节点");
+    // 检查链表中不再有该指针，其余指针都还在
+    for node in list.iter() {
+        assert_ne!(node, target_ptr);
+    }
+    let remain = list.iter().count();
+    assert_eq!(remain, N - 1);
 }
 
 fn test_empty_heap() {
