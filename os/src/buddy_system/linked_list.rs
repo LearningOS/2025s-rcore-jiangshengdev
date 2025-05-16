@@ -65,7 +65,6 @@ impl LinkedList {
         }
     }
 
-    #[allow(unused)]
     /// 返回链表中元素的可变迭代器
     pub fn iter_mut(&mut self) -> IterMut {
         IterMut {
@@ -103,7 +102,6 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-#[allow(unused)]
 /// 表示 `LinkedList` 中的可变节点
 pub struct ListNode {
     prev: *mut usize,
@@ -111,7 +109,6 @@ pub struct ListNode {
 }
 
 impl ListNode {
-    #[allow(unused)]
     /// 将该节点从链表中移除
     pub fn pop(self) -> *mut usize {
         // 跳过当前节点
@@ -121,7 +118,6 @@ impl ListNode {
         self.curr
     }
 
-    #[allow(unused)]
     /// 返回节点指向的地址
     pub fn value(&self) -> *mut usize {
         self.curr
