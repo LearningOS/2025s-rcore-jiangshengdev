@@ -35,8 +35,8 @@ impl LinkedList {
 
     /// 将 `item` 推入链表头部
     pub unsafe fn push(&mut self, item: *mut usize) {
-        let next_addr = self.head as usize;
-        *item = next_addr;
+        let old_head = self.head;
+        *item = old_head as usize;
         self.head = item;
         nop();
     }
@@ -50,8 +50,8 @@ impl LinkedList {
             false => {
                 // 移动头指针
                 let item = self.head;
-                let next_addr = unsafe { *item as *mut usize };
-                self.head = next_addr;
+                let new_head = unsafe { *item as *mut usize };
+                self.head = new_head;
                 Some(item)
             }
         }
@@ -67,8 +67,9 @@ impl LinkedList {
 
     /// 返回链表中元素的可变迭代器
     pub fn iter_mut(&mut self) -> IterMut {
+        let prev_ptr = &mut self.head as *mut *mut usize as *mut usize;
         IterMut {
-            prev: &mut self.head as *mut *mut usize as *mut usize,
+            prev: prev_ptr,
             curr: self.head,
             list: PhantomData,
         }
@@ -95,8 +96,8 @@ impl<'a> Iterator for Iter<'a> {
             None
         } else {
             let item = self.curr;
-            let next = unsafe { *item as *mut usize };
-            self.curr = next;
+            let next_ptr = unsafe { *item as *mut usize };
+            self.curr = next_ptr;
             Some(item)
         }
     }
@@ -143,7 +144,8 @@ impl<'a> Iterator for IterMut<'a> {
                 curr: self.curr,
             };
             self.prev = self.curr;
-            self.curr = unsafe { *self.curr as *mut usize };
+            let next_ptr = unsafe { *self.curr as *mut usize };
+            self.curr = next_ptr;
             Some(res)
         }
     }
