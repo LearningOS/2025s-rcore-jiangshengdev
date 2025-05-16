@@ -1,4 +1,4 @@
-//! Provide the intrusive LinkedList
+//! 提供侵入式链表（intrusive LinkedList）
 
 use core::marker::PhantomData;
 use core::{fmt, ptr};
@@ -7,12 +7,12 @@ pub fn nop() {}
 
 pub fn consume<T>(_value: T) {}
 
-/// An intrusive linked list
+/// 侵入式链表
 ///
-/// A clean room implementation of the one used in CS140e 2018 Winter
+/// 该实现参考了 CS140e 2018 Winter 课程中的链表实现，
 ///
-/// Thanks Sergio Benitez for his excellent work,
-/// See [CS140e](https://cs140e.sergio.bz/) for more information
+/// 感谢 Sergio Benitez 的出色工作，
+/// 详情见 [CS140e](https://cs140e.sergio.bz/)
 #[derive(Copy, Clone)]
 pub struct LinkedList {
     pub head: *mut usize,
@@ -21,19 +21,19 @@ pub struct LinkedList {
 unsafe impl Send for LinkedList {}
 
 impl LinkedList {
-    /// Create a new LinkedList
+    /// 创建一个新的 LinkedList
     pub const fn new() -> LinkedList {
         LinkedList {
             head: ptr::null_mut(),
         }
     }
 
-    /// Return `true` if the list is empty
+    /// 如果链表为空则返回 `true`
     pub fn is_empty(&self) -> bool {
         self.head.is_null()
     }
 
-    /// Push `item` to the front of the list
+    /// 将 `item` 推入链表头部
     pub unsafe fn push(&mut self, item: *mut usize) {
         let next_addr = self.head as usize;
         *item = next_addr;
@@ -41,14 +41,14 @@ impl LinkedList {
         nop();
     }
 
-    /// Try to remove the first item in the list
+    /// 尝试移除链表头部的元素
     pub fn pop(&mut self) -> Option<*mut usize> {
         let empty = self.is_empty();
 
         match empty {
             true => None,
             false => {
-                // Advance head pointer
+                // 移动头指针
                 let item = self.head;
                 let next_addr = unsafe { *item as *mut usize };
                 self.head = next_addr;
@@ -57,7 +57,7 @@ impl LinkedList {
         }
     }
 
-    /// Return an iterator over the items in the list
+    /// 返回链表中元素的迭代器
     pub fn iter(&self) -> Iter {
         Iter {
             curr: self.head,
@@ -66,7 +66,7 @@ impl LinkedList {
     }
 
     #[allow(unused)]
-    /// Return an mutable iterator over the items in the list
+    /// 返回链表中元素的可变迭代器
     pub fn iter_mut(&mut self) -> IterMut {
         IterMut {
             prev: &mut self.head as *mut *mut usize as *mut usize,
@@ -82,7 +82,7 @@ impl fmt::Debug for LinkedList {
     }
 }
 
-/// An iterator over the linked list
+/// 链表的迭代器
 pub struct Iter<'a> {
     curr: *mut usize,
     list: PhantomData<&'a LinkedList>,
@@ -104,7 +104,7 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 #[allow(unused)]
-/// Represent a mutable node in `LinkedList`
+/// 表示 `LinkedList` 中的可变节点
 pub struct ListNode {
     prev: *mut usize,
     curr: *mut usize,
@@ -112,9 +112,9 @@ pub struct ListNode {
 
 impl ListNode {
     #[allow(unused)]
-    /// Remove the node from the list
+    /// 将该节点从链表中移除
     pub fn pop(self) -> *mut usize {
-        // Skip the current one
+        // 跳过当前节点
         unsafe {
             *(self.prev) = *(self.curr);
         }
@@ -122,13 +122,13 @@ impl ListNode {
     }
 
     #[allow(unused)]
-    /// Returns the pointed address
+    /// 返回节点指向的地址
     pub fn value(&self) -> *mut usize {
         self.curr
     }
 }
 
-/// A mutable iterator over the linked list
+/// 链表的可变迭代器
 pub struct IterMut<'a> {
     list: PhantomData<&'a mut LinkedList>,
     prev: *mut usize,
