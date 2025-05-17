@@ -3,6 +3,9 @@
 use core::marker::PhantomData;
 use core::{fmt, ptr};
 
+/// 指向链表节点的指针类型别名
+type NodePtr = *mut usize;
+
 pub fn nop() {}
 
 pub fn consume<T>(_value: T) {}
@@ -15,7 +18,7 @@ pub fn consume<T>(_value: T) {}
 /// 详情见 [CS140e](https://cs140e.sergio.bz/)
 #[derive(Copy, Clone)]
 pub struct LinkedList {
-    pub head: *mut usize,
+    pub head: NodePtr,
 }
 
 unsafe impl Send for LinkedList {}
@@ -33,26 +36,26 @@ impl LinkedList {
         self.head.is_null()
     }
 
-    /// 将 `item` 推入链表头部
-    pub unsafe fn push(&mut self, item: *mut usize) {
+    /// 将 `node` 推入链表头部
+    pub unsafe fn push(&mut self, node: NodePtr) {
         let old_head = self.head;
-        *item = old_head as usize;
-        self.head = item;
+        *node = old_head as usize;
+        self.head = node;
         nop();
     }
 
     /// 尝试移除链表头部的元素
-    pub fn pop(&mut self) -> Option<*mut usize> {
+    pub fn pop(&mut self) -> Option<NodePtr> {
         let empty = self.is_empty();
 
         match empty {
             true => None,
             false => {
                 // 移动头指针
-                let item = self.head;
-                let new_head = unsafe { *item as *mut usize };
+                let node: NodePtr = self.head;
+                let new_head: NodePtr = unsafe { *node as NodePtr };
                 self.head = new_head;
-                Some(item)
+                Some(node)
             }
         }
     }
@@ -60,17 +63,17 @@ impl LinkedList {
     /// 返回链表中元素的迭代器
     pub fn iter(&self) -> Iter {
         Iter {
-            curr: self.head,
+            curr_ptr: self.head,
             list: PhantomData,
         }
     }
 
     /// 返回链表中元素的可变迭代器
     pub fn iter_mut(&mut self) -> IterMut {
-        let prev_ptr = &mut self.head as *mut *mut usize as *mut usize;
+        let head_ptr = &mut self.head as *mut NodePtr as NodePtr;
         IterMut {
-            prev: prev_ptr,
-            curr: self.head,
+            prev_ptr: head_ptr,
+            curr_ptr: self.head,
             list: PhantomData,
         }
     }
@@ -84,69 +87,69 @@ impl fmt::Debug for LinkedList {
 
 /// 链表的迭代器
 pub struct Iter<'a> {
-    curr: *mut usize,
+    curr_ptr: NodePtr,
     list: PhantomData<&'a LinkedList>,
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = *mut usize;
+    type Item = NodePtr;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.curr.is_null() {
+        if self.curr_ptr.is_null() {
             None
         } else {
-            let item = self.curr;
-            let next_ptr = unsafe { *item as *mut usize };
-            self.curr = next_ptr;
-            Some(item)
+            let node = self.curr_ptr;
+            let next_ptr = unsafe { *node as NodePtr };
+            self.curr_ptr = next_ptr;
+            Some(node)
         }
     }
 }
 
 /// 表示 `LinkedList` 中的可变节点
 pub struct ListNode {
-    prev: *mut usize,
-    curr: *mut usize,
+    prev_ptr: NodePtr,
+    curr_ptr: NodePtr,
 }
 
 impl ListNode {
     /// 将该节点从链表中移除
-    pub fn pop(self) -> *mut usize {
+    pub fn pop(self) -> NodePtr {
         // 跳过当前节点
         unsafe {
-            *(self.prev) = *(self.curr);
+            *(self.prev_ptr) = *(self.curr_ptr);
         }
-        self.curr
+        self.curr_ptr
     }
 
     /// 返回节点指向的地址
-    pub fn value(&self) -> *mut usize {
-        self.curr
+    pub fn value(&self) -> NodePtr {
+        self.curr_ptr
     }
 }
 
 /// 链表的可变迭代器
 pub struct IterMut<'a> {
     list: PhantomData<&'a mut LinkedList>,
-    prev: *mut usize,
-    curr: *mut usize,
+    prev_ptr: NodePtr,
+    curr_ptr: NodePtr,
 }
 
 impl<'a> Iterator for IterMut<'a> {
     type Item = ListNode;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.curr.is_null() {
+        if self.curr_ptr.is_null() {
             None
         } else {
-            let res = ListNode {
-                prev: self.prev,
-                curr: self.curr,
+            let node = ListNode {
+                prev_ptr: self.prev_ptr,
+                curr_ptr: self.curr_ptr,
             };
-            self.prev = self.curr;
-            let next_ptr = unsafe { *self.curr as *mut usize };
-            self.curr = next_ptr;
-            Some(res)
+            self.prev_ptr = self.curr_ptr;
+            let next_ptr = unsafe { *self.curr_ptr as NodePtr };
+            self.curr_ptr = next_ptr;
+            Some(node)
         }
     }
 }
