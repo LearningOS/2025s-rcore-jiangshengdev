@@ -13,6 +13,7 @@
 #![no_main]
 #![feature(panic_info_message)]
 
+use crate::buddy_system::heap::heap_tests::test_heap_edge_all;
 use crate::buddy_system::test_all;
 use core::arch::global_asm;
 use log::*;
@@ -76,6 +77,7 @@ pub fn rust_main() -> ! {
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
     test_all();
+    test_heap_edge_all();
 
     use crate::board::QEMUExit;
     crate::board::QEMU_EXIT_HANDLE.exit_success(); // CI autotest success

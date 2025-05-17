@@ -16,6 +16,7 @@ mod add;
 mod alloc;
 mod ctor;
 mod debug;
+pub mod heap_tests;
 mod normalize;
 mod split_merge;
 mod stats;

@@ -2,6 +2,7 @@ use crate::buddy_system::linked_list::consume;
 use crate::buddy_system::{linked_list, Heap};
 use core::alloc::Layout;
 use core::mem::size_of;
+use core::ptr::NonNull;
 
 pub fn test_all() {
     test_linked_list();
@@ -158,8 +159,15 @@ fn test_heap_alloc_and_free() {
 
     println!("{:#?}", heap);
 
-    for _ in 0..100 {
-        let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+    // 先统一分配 100 次，再统一释放
+    let mut addrs: [NonNull<u8>; 100] = [NonNull::dangling(); 100];
+    for i in 0..100 {
+        addrs[i] = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+    }
+
+    println!("{:#?}", heap);
+
+    for &addr in addrs.iter() {
         heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
     }
 
