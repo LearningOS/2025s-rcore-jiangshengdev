@@ -155,8 +155,13 @@ fn test_heap_alloc_and_free() {
     unsafe {
         heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
     }
+
+    println!("{:#?}", heap);
+
     for _ in 0..100 {
-        let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
-        heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
+        let _addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+        // heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
     }
+
+    println!("{:#?}", heap);
 }

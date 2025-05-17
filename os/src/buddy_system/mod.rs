@@ -3,6 +3,7 @@ mod test;
 
 use core::alloc::Layout;
 use core::cmp::{max, min};
+use core::fmt;
 use core::mem::size_of;
 use core::ptr::NonNull;
 pub use test::test_all;
@@ -112,6 +113,7 @@ impl<const ORDER: usize> Heap<ORDER> {
     }
 
     /// 释放一段内存回堆
+    #[allow(unused)]
     pub fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
         let size = max(
             layout.size().next_power_of_two(),
@@ -170,6 +172,29 @@ impl<const ORDER: usize> Heap<ORDER> {
     #[allow(unused)]
     pub fn stats_total_bytes(&self) -> usize {
         self.total
+    }
+}
+
+impl<const ORDER: usize> fmt::Debug for Heap<ORDER> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Heap {{ user: {}, allocated: {}, total: {}",
+            self.user, self.allocated, self.total
+        )?;
+        for (i, list) in self.free_list.iter().enumerate() {
+            write!(f, ",\n  free_list[{}]: [", i)?;
+            let mut first = true;
+            for node in list.iter() {
+                if !first {
+                    write!(f, ", ")?;
+                }
+                write!(f, "0x{:x}", node as usize)?;
+                first = false;
+            }
+            write!(f, "]")?;
+        }
+        write!(f, " }}")
     }
 }
 
