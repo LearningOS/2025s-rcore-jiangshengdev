@@ -159,8 +159,8 @@ fn test_heap_alloc_and_free() {
     println!("{:#?}", heap);
 
     for _ in 0..100 {
-        let _addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
-        // heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
+        let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+        heap.dealloc(addr, Layout::from_size_align(1, 1).unwrap());
     }
 
     println!("{:#?}", heap);
