@@ -25,6 +25,7 @@ use lazy_static::*;
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
 
+use crate::nop;
 pub use context::TaskContext;
 
 /// The task manager, where all the tasks are managed.
@@ -168,6 +169,8 @@ impl TaskManager {
                 println!("next: {:#x?}", *next_task_cx_ptr);
 
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
+
+                nop();
             }
 
             // go back to user mode

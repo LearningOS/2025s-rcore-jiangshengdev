@@ -105,3 +105,6 @@ pub fn rust_main() -> ! {
     task::run_first_task();
     panic!("Unreachable in rust_main!");
 }
+
+/// Do nothing
+pub fn nop() {}
