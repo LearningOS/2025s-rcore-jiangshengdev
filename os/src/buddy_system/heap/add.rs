@@ -3,35 +3,52 @@ use core::mem::size_of;
 
 impl<const ORDER: usize> super::Heap<ORDER> {
     /// 向堆中添加一段内存区间 [start, end)
-    pub unsafe fn add_to_heap(&mut self, mut start: usize, mut end: usize) {
-        // 对 start 进行上对齐，保证地址符合 usize 对齐要求
-        start = align_up(start, size_of::<usize>());
-        // 对 end 进行下对齐，保证地址符合 usize 对齐要求
-        end = align_down(end, size_of::<usize>());
-        // 确保对齐后起始地址不大于结束地址
-        assert!(start <= end);
-
-        // 本次加入堆的总字节数统计
-        let mut total = 0;
-        // 当前待分割块的起始地址
-        let mut current_start = start;
-
-        // 循环将区间按伙伴系统要求切分为若干 2^k 块
-        while current_start + size_of::<usize>() <= end {
-            // 计算当前可分配块的大小及阶次索引
-            let (size, order_idx) =
-                self.calc_block_size_and_order(current_start, end - current_start);
-            // 累加统计
-            total += size;
-
-            // 将块插入对应阶的空闲链表
-            self.free_list[order_idx].push(current_start as *mut usize);
-            // 前进到下一个块
-            current_start += size;
-        }
-
+    pub unsafe fn add_to_heap(&mut self, start: usize, end: usize) {
+        // 对输入区间进行对齐和校验
+        let (start, end) = self.align_and_validate(start, end);
+        // 拆分对齐后的区间并插入空闲链表，获取累积添加字节数
+        let added = self.split_and_push(start, end);
         // 更新堆总体统计
-        self.total += total;
+        self.total += added;
+    }
+
+    /// 对输入区间进行对齐并验证，返回对齐后的 `(start, end)`
+    #[inline]
+    fn align_and_validate(&self, mut start: usize, mut end: usize) -> (usize, usize) {
+        // usize 对齐边界，用于确保地址以指针大小对齐
+        let ptr_align = size_of::<usize>();
+        // 将 start 向上对齐到指针对齐边界
+        start = align_up(start, ptr_align);
+        // 将 end 向下对齐到指针对齐边界
+        end = align_down(end, ptr_align);
+        // 验证对齐后区间为有效范围
+        assert!(
+            start <= end,
+            "add_to_heap: start ({:#x}) > end ({:#x})",
+            start,
+            end
+        );
+        (start, end)
+    }
+
+    /// 拆分对齐后的区间并插入对应阶的空闲链表，返回累积字节数
+    #[inline]
+    unsafe fn split_and_push(&mut self, start: usize, end: usize) -> usize {
+        // usize 对齐边界，用于循环结束条件
+        let ptr_align = size_of::<usize>();
+        let mut total_added = 0;
+        let mut current = start;
+        while current + ptr_align <= end {
+            // 计算块大小与阶次
+            let (block_size, order) = self.calc_block_size_and_order(current, end - current);
+            // 累加统计
+            total_added += block_size;
+            // 将该块插入对应阶的空闲链表
+            self.free_list[order].push(current as *mut usize);
+            // 前进到下一个块起始位置
+            current += block_size;
+        }
+        total_added
     }
 
     /// 向堆中添加一段内存区间 [start, start+size)
