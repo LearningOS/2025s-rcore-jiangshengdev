@@ -4,6 +4,14 @@ use core::alloc::Layout;
 use core::mem::size_of;
 use core::ptr::NonNull;
 
+#[repr(align(4096))]
+/// 4KB 页面对齐的 usize 数组，用于堆内存测试
+struct Aligned100([usize; 100]);
+
+#[repr(align(4096))]
+/// 4KB 页面对齐的 u8 数组，用于堆内存测试
+struct Aligned512([u8; 512]);
+
 pub fn test_all() {
     test_linked_list();
     test_linked_list_iter_mut();
@@ -110,26 +118,26 @@ fn test_empty_heap() {
 }
 
 fn test_heap_add() {
+    // 确保初始无可用空间
     let mut heap = Heap::<32>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
-
-    let space: [usize; 100] = [0; 100];
+    // 使用 4KB 对齐的 usize 数组作为堆内存区域
+    let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
     }
     let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
     assert!(addr.is_ok());
 }
 
 fn test_heap_add_large() {
-    // Max size of block is 2^7 == 128 bytes
+    // 确保初始无可用空间
     let mut heap = Heap::<8>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
-
-    // 512 bytes of space
-    let space: [u8; 512] = [0; 512];
+    // 使用 4KB 对齐的 u8 数组作为堆内存区域
+    let space = Aligned512([0; 512]);
     unsafe {
-        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(512) as usize);
+        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(512) as usize);
     }
     let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
     assert!(addr.is_ok());
@@ -137,9 +145,10 @@ fn test_heap_add_large() {
 
 fn test_heap_oom() {
     let mut heap = Heap::<32>::new();
-    let space: [usize; 100] = [0; 100];
+    // 使用 4KB 对齐的 usize 数组作为堆内存区域
+    let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
     }
 
     assert!(heap
@@ -152,9 +161,10 @@ fn test_heap_alloc_and_free() {
     let mut heap = Heap::<32>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
 
-    let space: [usize; 100] = [0; 100];
+    // 使用 4KB 对齐的 usize 数组作为堆内存区域
+    let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.as_ptr() as usize, space.as_ptr().add(100) as usize);
+        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
     }
 
     println!("{:#?}", heap);
