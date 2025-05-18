@@ -6,19 +6,26 @@ use core::ptr::NonNull;
 
 #[repr(align(4096))]
 /// 4KB 页面对齐的 usize 数组，用于堆内存测试
-struct Aligned100([usize; 100]);
+struct Aligned127([usize; 127]);
 
 #[repr(align(4096))]
 /// 4KB 页面对齐的 u8 数组，用于堆内存测试
 struct Aligned512([u8; 512]);
 
 pub fn test_all() {
+    println!("test_linked_list...");
     test_linked_list();
+    println!("test_linked_list_iter_mut...");
     test_linked_list_iter_mut();
+    println!("test_empty_heap...");
     test_empty_heap();
+    println!("test_heap_add...");
     test_heap_add();
+    println!("test_heap_add_large...");
     test_heap_add_large();
+    println!("test_heap_oom...");
     test_heap_oom();
+    println!("test_heap_alloc_and_free...");
     test_heap_alloc_and_free();
 }
 
@@ -122,11 +129,11 @@ fn test_heap_add() {
     let mut heap = Heap::<32>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
-    let space = Aligned100([0; 100]);
+    let space = Aligned127([0x5555_5555_5555_5555; 127]);
     unsafe {
         heap.add_to_heap(
             space.0.as_ptr() as usize,
-            space.0.as_ptr().add(100) as usize,
+            space.0.as_ptr().add(127) as usize,
         );
     }
     let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
@@ -138,7 +145,7 @@ fn test_heap_add_large() {
     let mut heap = Heap::<8>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
     // 使用 4KB 对齐的 u8 数组作为堆内存区域
-    let space = Aligned512([0; 512]);
+    let space = Aligned512([0x5; 512]);
     unsafe {
         heap.add_to_heap(
             space.0.as_ptr() as usize,
@@ -152,16 +159,17 @@ fn test_heap_add_large() {
 fn test_heap_oom() {
     let mut heap = Heap::<32>::new();
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
-    let space = Aligned100([0; 100]);
+    let space = Aligned127([0x5555_5555_5555_5555; 127]);
     unsafe {
         heap.add_to_heap(
             space.0.as_ptr() as usize,
-            space.0.as_ptr().add(100) as usize,
+            space.0.as_ptr().add(127) as usize,
         );
     }
 
+    // 分配请求大于堆空间，预期分配失败（OOM）
     assert!(heap
-        .alloc(Layout::from_size_align(100 * size_of::<usize>(), 1).unwrap())
+        .alloc(Layout::from_size_align(129 * size_of::<usize>(), 1).unwrap())
         .is_err());
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_ok());
 }
@@ -171,19 +179,19 @@ fn test_heap_alloc_and_free() {
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
 
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
-    let space = Aligned100([0; 100]);
+    let space = Aligned127([0x5555_5555_5555_5555; 127]);
     unsafe {
         heap.add_to_heap(
             space.0.as_ptr() as usize,
-            space.0.as_ptr().add(100) as usize,
+            space.0.as_ptr().add(127) as usize,
         );
     }
 
     println!("{:#?}", heap);
 
-    // 先统一分配 100 次，再统一释放
-    let mut addrs: [NonNull<u8>; 100] = [NonNull::dangling(); 100];
-    for i in 0..100 {
+    // 先统一分配 127 次，再统一释放
+    let mut addrs: [NonNull<u8>; 127] = [NonNull::dangling(); 127];
+    for i in 0..127 {
         addrs[i] = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
     }
 
