@@ -16,6 +16,8 @@ mod add;
 mod alloc;
 mod ctor;
 mod debug;
+mod error;
+pub use error::HeapError;
 pub mod heap_tests;
 mod normalize;
 mod split_merge;
