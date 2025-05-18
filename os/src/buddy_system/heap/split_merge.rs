@@ -27,18 +27,18 @@ impl<const ORDER: usize> super::Heap<ORDER> {
     }
 
     /// 弹出指定阶的空闲块，若为空返回 InternalError
-    unsafe fn pop_block(&mut self, order: usize) -> Result<*mut usize, HeapError> {
-        self.free_list[order].pop().ok_or(HeapError::InternalError)
+    unsafe fn pop_block(&mut self, order_idx: usize) -> Result<*mut usize, HeapError> {
+        self.free_list[order_idx].pop().ok_or(HeapError::InternalError)
     }
 
     /// 将地址 addr 插入指定阶的空闲链表
-    unsafe fn push_block(&mut self, order: usize, addr: usize) {
-        self.free_list[order].push(addr as *mut usize);
+    unsafe fn push_block(&mut self, order_idx: usize, addr: usize) {
+        self.free_list[order_idx].push(addr as *mut usize);
     }
 
     /// 在指定阶链表中查找并移除伙伴块，找到返回 true
-    unsafe fn find_and_remove_buddy(&mut self, order: usize, buddy_addr: usize) -> bool {
-        for node in self.free_list[order].iter_mut() {
+    unsafe fn find_and_remove_buddy(&mut self, order_idx: usize, buddy_addr: usize) -> bool {
+        for node in self.free_list[order_idx].iter_mut() {
             if node.value() as usize == buddy_addr {
                 node.pop();
                 return true;

@@ -14,12 +14,12 @@ pub fn align_down(addr: usize, align: usize) -> usize {
     addr & (!(align - 1))
 }
 
-/// 计算指定阶的块大小，即 2^order
-pub const fn block_size(order: usize) -> usize {
-    1 << order
+/// 计算指定阶的块大小，即 2^order_idx
+pub const fn block_size(order_idx: usize) -> usize {
+    1 << order_idx
 }
 
-/// 计算指定阶的半块大小，即 2^(order-1)
-pub const fn half_block_size(order: usize) -> usize {
-    1 << (order - 1)
+/// 计算指定阶的半块大小，即 2^(order_idx-1)
+pub const fn half_block_size(order_idx: usize) -> usize {
+    1 << (order_idx - 1)
 }

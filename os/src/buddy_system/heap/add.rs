@@ -40,11 +40,11 @@ impl<const ORDER: usize> super::Heap<ORDER> {
         let mut current = start;
         while current + ptr_align <= end {
             // 计算块大小与阶次
-            let (block_size, order) = self.calc_block_size_and_order(current, end - current);
+            let (block_size, order_idx) = self.calc_block_size_and_order(current, end - current);
             // 累加统计
             total_added += block_size;
             // 将该块插入对应阶的空闲链表
-            self.free_list[order].push(current as *mut usize);
+            self.free_list[order_idx].push(current as *mut usize);
             // 前进到下一个块起始位置
             current += block_size;
         }
