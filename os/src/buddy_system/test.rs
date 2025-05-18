@@ -124,7 +124,10 @@ fn test_heap_add() {
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
     let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
+        heap.add_to_heap(
+            space.0.as_ptr() as usize,
+            space.0.as_ptr().add(100) as usize,
+        );
     }
     let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
     assert!(addr.is_ok());
@@ -137,7 +140,10 @@ fn test_heap_add_large() {
     // 使用 4KB 对齐的 u8 数组作为堆内存区域
     let space = Aligned512([0; 512]);
     unsafe {
-        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(512) as usize);
+        heap.add_to_heap(
+            space.0.as_ptr() as usize,
+            space.0.as_ptr().add(512) as usize,
+        );
     }
     let addr = heap.alloc(Layout::from_size_align(1, 1).unwrap());
     assert!(addr.is_ok());
@@ -148,7 +154,10 @@ fn test_heap_oom() {
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
     let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
+        heap.add_to_heap(
+            space.0.as_ptr() as usize,
+            space.0.as_ptr().add(100) as usize,
+        );
     }
 
     assert!(heap
@@ -164,7 +173,10 @@ fn test_heap_alloc_and_free() {
     // 使用 4KB 对齐的 usize 数组作为堆内存区域
     let space = Aligned100([0; 100]);
     unsafe {
-        heap.add_to_heap(space.0.as_ptr() as usize, space.0.as_ptr().add(100) as usize);
+        heap.add_to_heap(
+            space.0.as_ptr() as usize,
+            space.0.as_ptr().add(100) as usize,
+        );
     }
 
     println!("{:#?}", heap);
