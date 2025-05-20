@@ -191,8 +191,9 @@ fn test_heap_alloc_and_free() {
 
     // 先统一分配 127 次，再统一释放
     let mut addrs: [NonNull<u8>; 127] = [NonNull::dangling(); 127];
-    for i in 0..127 {
-        addrs[i] = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
+    // 依次分配 127 个 1 字节块，将返回地址存入 addrs 数组
+    for slot in addrs.iter_mut() {
+        *slot = heap.alloc(Layout::from_size_align(1, 1).unwrap()).unwrap();
     }
 
     println!("{:#?}", heap);

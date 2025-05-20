@@ -28,7 +28,9 @@ impl<const ORDER: usize> super::Heap<ORDER> {
 
     /// 弹出指定阶的空闲块，若为空返回 InternalError
     unsafe fn pop_block(&mut self, order_idx: usize) -> Result<*mut usize, HeapError> {
-        self.free_list[order_idx].pop().ok_or(HeapError::InternalError)
+        self.free_list[order_idx]
+            .pop()
+            .ok_or(HeapError::InternalError)
     }
 
     /// 将地址 addr 插入指定阶的空闲链表
