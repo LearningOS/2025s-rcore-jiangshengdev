@@ -40,6 +40,11 @@ SECTIONS
 
     . = ALIGN(4K);
     ebss = .;
+    . = ALIGN(2048M);
+    . = . + 1;
+    __heap_start = .;
+    . = . + 8 * 1024 * 1024 * 1024 - 2;
+    __heap_end = .;
     ekernel = .;
 
     /DISCARD/ : {

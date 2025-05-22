@@ -4,6 +4,13 @@ use core::alloc::Layout;
 use core::mem::size_of;
 use core::ptr::NonNull;
 
+extern "C" {
+    /// 链接器定义的堆空间起始地址
+    static __heap_start: u8;
+}
+
+const SIZE: usize = 8 * 1024 * 1024 * 1024 - 2;
+
 #[repr(align(4096))]
 /// 4KB 页面对齐的 usize 数组，用于堆内存测试
 struct Aligned127([usize; 127]);
@@ -178,13 +185,10 @@ fn test_heap_alloc_and_free() {
     let mut heap = Heap::<32>::new();
     assert!(heap.alloc(Layout::from_size_align(1, 1).unwrap()).is_err());
 
-    // 使用 4KB 对齐的 usize 数组作为堆内存区域
-    let space = Aligned127([0x5555_5555_5555_5555; 127]);
     unsafe {
-        heap.add_to_heap(
-            space.0.as_ptr() as usize,
-            space.0.as_ptr().add(127) as usize,
-        );
+        let start = &__heap_start as *const _ as usize;
+        let end = start + SIZE;
+        heap.add_to_heap(start, end);
     }
 
     println!("{:#?}", heap);
