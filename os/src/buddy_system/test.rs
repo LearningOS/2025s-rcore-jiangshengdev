@@ -188,6 +188,9 @@ fn test_heap_alloc_and_free() {
     unsafe {
         let start = &__heap_start as *const _ as usize;
         let end = start + SIZE;
+
+        println!("[0x{:x}, 0x{:x})", start, end);
+
         heap.add_to_heap(start, end);
     }
 

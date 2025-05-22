@@ -4,11 +4,11 @@ impl<const ORDER: usize> fmt::Debug for super::Heap<ORDER> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Heap {{ user: {}, allocated: {}, total: {}",
+            "Heap {{\n  user: 0x{:x}, allocated: 0x{:x}, total: 0x{:x}",
             self.user, self.allocated, self.total
         )?;
         for (i, list) in self.free_list.iter().enumerate() {
-            write!(f, ",\n  free_list[{}]: [", i)?;
+            write!(f, ",\n  free_list[{i:2}]: [", i = i)?;
             let mut first = true;
             for node in list.iter() {
                 if !first {
@@ -19,6 +19,6 @@ impl<const ORDER: usize> fmt::Debug for super::Heap<ORDER> {
             }
             write!(f, "]")?;
         }
-        write!(f, " }}")
+        write!(f, "\n}}")
     }
 }
