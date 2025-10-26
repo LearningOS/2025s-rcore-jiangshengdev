@@ -42,7 +42,7 @@ lazy_static! {
 
 /// Add process to ready queue
 pub fn add_task(task: Arc<TaskControlBlock>) {
-	//trace!("kernel: TaskManager::add_task");
+    //trace!("kernel: TaskManager::add_task");
     PID2TCB
         .exclusive_access()
         .insert(task.getpid(), Arc::clone(&task));
@@ -51,7 +51,7 @@ pub fn add_task(task: Arc<TaskControlBlock>) {
 
 /// Take a process out of the ready queue
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
-	//trace!("kernel: TaskManager::fetch_task");
+    //trace!("kernel: TaskManager::fetch_task");
     TASK_MANAGER.exclusive_access().fetch()
 }
 
